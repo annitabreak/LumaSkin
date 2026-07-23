@@ -75,6 +75,7 @@ button {
 .screen {
   position: absolute;
   inset: 0;
+  height: 100%;
   display: none;
   background: var(--bg);
   overflow-y: auto;
@@ -89,10 +90,11 @@ button {
 
 .splash-screen,
 .login-screen {
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .status {
+  display: none;
   height: calc(44px + var(--safe-top));
   padding: calc(13px + var(--safe-top)) max(24px, calc((100vw - 375px) / 2 + 24px)) 0;
   display: flex;
@@ -183,8 +185,23 @@ button {
   background-repeat: no-repeat;
 }
 
-.hero-clear > * {
+.hero-clear > *,
+.hero-channels > *,
+.hero-tracking > * {
   display: none;
+}
+
+.hero-channels {
+  background: url("/assets/onboarding-channels.png") center / cover no-repeat #fff;
+}
+
+.hero-tracking {
+  background-image:
+    url("/assets/onboarding-tracking-1.png"),
+    url("/assets/onboarding-tracking-2.png");
+  background-size: 256px 256px, cover;
+  background-position: center 130px, center;
+  background-repeat: no-repeat;
 }
 
 .hero-clear .face-profile {
@@ -409,7 +426,8 @@ button {
 }
 
 .onboarding-copy {
-  height: calc(100% - 506px);
+  height: 306px;
+  min-height: 306px;
   width: min(100%, 375px);
   margin: 0 auto;
   padding: 24px;

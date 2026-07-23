@@ -1,4 +1,4 @@
-const CACHE_NAME = "lumaskin-pwa-v1";
+const CACHE_NAME = "lumaskin-pwa-v3";
 const ASSETS = [
   "/",
   "/index.html",
@@ -6,6 +6,12 @@ const ASSETS = [
   "/app.js",
   "/manifest.json",
   "/icons/icon.svg",
+  "/assets/login-hero.png",
+  "/assets/onboarding-value-1.png",
+  "/assets/onboarding-value-2.png",
+  "/assets/onboarding-channels.png",
+  "/assets/onboarding-tracking-1.png",
+  "/assets/onboarding-tracking-2.png",
 ];
 
 self.addEventListener("install", (event) => {
@@ -24,5 +30,13 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
-  event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)));
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        return response;
+      })
+      .catch(() => caches.match(event.request)),
+  );
 });
