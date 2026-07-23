@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="LumaSkin" />
+    <meta
+      name="description"
+      content="A mobile-first PWA prototype for controlled optical skin monitoring."
+    />
+    <title>LumaSkin</title>
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell" aria-label="LumaSkin PWA prototype">
+      <section class="screen screen-active" data-screen="splash" aria-label="Splash">
+        <div class="status">
+          <span>9:41</span>
+          <span class="status-icons">●● ▭</span>
+        </div>
+        <div class="splash-center">
+          <div class="mark">
+            <span></span>
+          </div>
+          <h1>LumaSkin</h1>
+          <p>Multi-channel optical skin monitoring</p>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="onboarding-1" aria-label="Onboarding 1">
+        <div class="status">
+          <span>9:41</span>
+          <span class="status-icons">●● ▭</span>
+        </div>
+        <div class="hero-illustration hero-clear">
+          <div class="face-profile"></div>
+          <div class="lens-orbit"></div>
+          <div class="skin-layer layer-one"></div>
+          <div class="skin-layer layer-two"></div>
+          <div class="skin-layer layer-three"></div>
+          <div class="leaf leaf-a"></div>
+          <div class="sparkle sparkle-a"></div>
+        </div>
+        <div class="onboarding-copy">
+          <div class="dots" aria-hidden="true"><i class="active"></i><i></i><i></i></div>
+          <h2>See beyond a normal skin photo</h2>
+          <p>
+            LumaSkin uses controlled optical imaging to reduce glare and make visible
+            skin changes easier to compare.
+          </p>
+          <button class="primary" data-go="onboarding-2">Next</button>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="onboarding-2" aria-label="Onboarding 2">
+        <div class="status">
+          <span>9:41</span>
+          <span class="status-icons">●● ▭</span>
+        </div>
+        <div class="hero-illustration hero-channels">
+          <div class="channel-card card-rgb"><span></span></div>
+          <div class="channel-card card-red"><span></span></div>
+          <div class="channel-card card-texture"><span></span></div>
+          <div class="lens-symbol"><span></span></div>
+          <svg viewBox="0 0 375 506" aria-hidden="true">
+            <path d="M214 206 C160 210 124 176 94 145" />
+            <path d="M222 217 C278 206 303 172 322 126" />
+            <path d="M210 244 C190 304 168 350 136 386" />
+          </svg>
+        </div>
+        <div class="onboarding-copy">
+          <div class="dots" aria-hidden="true"><i></i><i class="active"></i><i></i></div>
+          <h2>Light reveals more detail</h2>
+          <p>
+            RGB and polarized imaging help separate color, reflection, and surface
+            texture, making visible skin changes easier to compare.
+          </p>
+          <button class="primary" data-go="onboarding-3">Next</button>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="onboarding-3" aria-label="Onboarding 3">
+        <div class="status">
+          <span>9:41</span>
+          <span class="status-icons">●● ▭</span>
+        </div>
+        <div class="hero-illustration hero-tracking">
+          <div class="profile-wash"></div>
+          <div class="timeline-card t1"></div>
+          <div class="timeline-card t2"></div>
+          <div class="timeline-card t3"></div>
+          <svg viewBox="0 0 375 506" aria-hidden="true">
+            <path d="M32 386 C108 336 188 374 328 280" />
+          </svg>
+          <div class="check-badge">✓</div>
+        </div>
+        <div class="onboarding-copy">
+          <div class="dots" aria-hidden="true"><i></i><i></i><i class="active"></i></div>
+          <h2>Track changes with confidence</h2>
+          <p>
+            Compare your scans over time, so visible skin changes are easier to follow
+            and discuss.
+          </p>
+          <button class="primary" data-go="home">Get Started</button>
+        </div>
+      </section>
+
+      <section class="screen app-screen" data-screen="home" aria-label="Home">
+        <div class="status">
+          <span>9:41</span>
+          <span class="status-icons">●● ▭</span>
+        </div>
+        <header class="topbar">
+          <h2>LumaSkin</h2>
+        </header>
+        <div class="content">
+          <div class="section-head">
+            <h3>Good morning, Alex</h3>
+            <span class="pill">Clip ready</span>
+          </div>
+          <article class="score-card">
+            <div>
+              <p>Last scan summary</p>
+              <strong>82</strong>
+              <span>Good</span>
+            </div>
+            <div class="score-ring">✓</div>
+          </article>
+          <article class="card recent">
+            <div>
+              <h4>Recent report</h4>
+              <p>Apr 24, 2025 · Left cheek</p>
+              <div class="mini-wave"></div>
+            </div>
+            <strong>82</strong>
+          </article>
+          <h4 class="subhead">Quick actions</h4>
+          <div class="quick-grid">
+            <button data-go="scan-setup"><span>◎</span>New Scan</button>
+            <button data-go="history"><span>◷</span>History</button>
+            <button data-go="report"><span>▥</span>Trends</button>
+          </div>
+          <p class="scope-note">
+            Monitoring support only. LumaSkin does not diagnose or recommend treatment.
+          </p>
+        </div>
+        <nav class="tabbar">
+          <button class="tab-active" data-go="home"><span>⌂</span>Home</button>
+          <button data-go="scan-setup"><span>◎</span>Scan</button>
+          <button data-go="history"><span>◷</span>History</button>
+          <button data-go="profile"><span>◉</span>Profile</button>
+        </nav>
+      </section>
+
+      <section class="screen app-screen" data-screen="scan-setup" aria-label="Scan setup">
+        <div class="status">
+          <span>9:41</span>
+          <span class="status-icons">●● ▭</span>
+        </div>
+        <header class="topbar">
+          <h2>Scan</h2>
+        </header>
+        <div class="content">
+          <h3 class="headline">Prepare your scan</h3>
+          <p class="lead">Use a dim space and let the LED ring provide the main light source.</p>
+          <div class="device-visual">
+            <div class="led-ring"></div>
+          </div>
+          <article class="card checklist">
+            <p><span>✓</span>Clean your face</p>
+            <p><span>✓</span>Attach the clip-on module</p>
+            <p><span>✓</span>Dim room lighting</p>
+            <p><span>✓</span>Keep your phone steady</p>
+          </article>
+          <button class="primary" data-go="camera">I'm ready</button>
+        </div>
+        <nav class="tabbar">
+          <button data-go="home"><span>⌂</span>Home</button>
+          <button class="tab-active" data-go="scan-setup"><span>◎</span>Scan</button>
+          <button data-go="history"><span>◷</span>History</button>
+          <button data-go="profile"><span>◉</span>Profile</button>
+        </nav>
+      </section>
+
+      <section class="screen app-screen camera-screen" data-screen="camera" aria-label="Camera guide">
+        <div class="status">
+          <span>9:41</span>
+          <span class="status-icons">●● ▭</span>
+        </div>
+        <header class="camera-copy">
+          <h2>Position your face</h2>
+          <p>Align the target area and hold still</p>
+        </header>
+        <div class="face-guide">
+          <div class="face-oval"></div>
+          <div class="face-shape"></div>
+          <div class="hair-shape"></div>
+          <div class="target-area"></div>
+        </div>
+        <div class="camera-indicators">
+          <span>Distance<br /><b>Good</b></span>
+          <span>Lighting<br /><b>Stable</b></span>
+          <span>Reflection<br /><b>Low</b></span>
+        </div>
+        <button class="primary capture" data-go="quality">Capture</button>
+        <nav class="tabbar">
+          <button data-go="home"><span>⌂</span>Home</button>
+          <button class="tab-active" data-go="scan-setup"><span>◎</span>Scan</button>
+          <button data-go="history"><span>◷</span>History</button>
+          <button data-go="profile"><span>◉</span>Profile</button>
+        </nav>
+      </section>
+
+      <section class="screen app-screen" data-screen="quality" aria-label="Image quality check">
+        <div class="status">
+          <span>9:41</span>
+          <span class="status-icons">●● ▭</span>
+        </div>
+        <header class="topbar">
+          <button class="back" data-go="camera">‹</button>
+          <h2>Quality check</h2>
+        </header>
+        <div class="content">
+          <h3 class="headline">Review before analysis</h3>
+          <p class="lead">We check the capture quality before generating a report.</p>
+          <div class="channel-grid">
+            <div class="channel rgb">RGB<span>✓</span></div>
+            <div class="channel cross">Cross-pol<span>✓</span></div>
+            <div class="channel parallel">Parallel-pol<span>✓</span></div>
+            <div class="channel reference">Reference<span>✓</span></div>
+          </div>
+          <article class="card quality-list">
+            <p><span>✓</span>Face is aligned</p>
+            <p><span>✓</span>Focus is clear</p>
+            <p><span>✓</span>Lighting is consistent</p>
+          </article>
+          <div class="button-row">
+            <button class="secondary" data-go="camera">Retake</button>
+            <button class="primary" data-go="report">Analyze</button>
+          </div>
+        </div>
+        <nav class="tabbar">
+          <button data-go="home"><span>⌂</span>Home</button>
+          <button class="tab-active" data-go="scan-setup"><span>◎</span>Scan</button>
+          <button data-go="history"><span>◷</span>History</button>
+          <button data-go="profile"><span>◉</span>Profile</button>
+        </nav>
+      </section>
+
+      <section class="screen app-screen" data-screen="history" aria-label="History">
+        <div class="status">
+          <span>9:41</span>
+          <span class="status-icons">●● ▭</span>
+        </div>
+        <header class="topbar">
+          <h2>History</h2>
+        </header>
+        <div class="content">
+          <div class="section-head">
+            <h3>Past scans</h3>
+            <span class="pill active">All</span>
+          </div>
+          <div class="scan-list">
+            <button data-go="report"><i></i><span>Apr 24, 2025<small>Left cheek</small></span><b>82<small>Good</small></b></button>
+            <button data-go="report"><i></i><span>Apr 10, 2025<small>Left cheek</small></span><b>78<small>Good</small></b></button>
+            <button data-go="report"><i></i><span>Mar 24, 2025<small>Left cheek</small></span><b>72<small>Fair</small></b></button>
+            <button data-go="report"><i></i><span>Mar 10, 2025<small>Left cheek</small></span><b>68<small>Fair</small></b></button>
+          </div>
+          <article class="card trend-card">
+            <h4>Overall trend</h4>
+            <svg viewBox="0 0 260 80" aria-hidden="true">
+              <polyline points="12,58 74,46 140,32 232,18"></polyline>
+              <polyline points="18,26 96,42 178,52"></polyline>
+            </svg>
+          </article>
+        </div>
+        <nav class="tabbar">
+          <button data-go="home"><span>⌂</span>Home</button>
+          <button data-go="scan-setup"><span>◎</span>Scan</button>
+          <button class="tab-active" data-go="history"><span>◷</span>History</button>
+          <button data-go="profile"><span>◉</span>Profile</button>
+        </nav>
+      </section>
+
+      <section class="screen app-screen" data-screen="report" aria-label="Report detail">
+        <div class="status">
+          <span>9:41</span>
+          <span class="status-icons">●● ▭</span>
+        </div>
+        <header class="topbar">
+          <button class="back" data-go="history">‹</button>
+          <h2>Report detail</h2>
+        </header>
+        <div class="content">
+          <p class="date">Apr 24, 2025 · Left cheek</p>
+          <article class="score-card compact">
+            <div>
+              <p>Overall score</p>
+              <strong>82</strong>
+            </div>
+            <span>Good</span>
+          </article>
+          <div class="segmented">
+            <button class="active">Overview</button>
+            <button>Color</button>
+            <button>Texture</button>
+            <button>Compare</button>
+          </div>
+          <div class="metrics">
+            <p><span>Redness area</span><i><b style="width: 64%"></b></i><em>Stable</em></p>
+            <p><span>Boundary clarity</span><i><b style="width: 72%"></b></i><em>Clearer</em></p>
+            <p><span>Surface shine</span><i><b style="width: 58%"></b></i><em>Lower</em></p>
+            <p><span>Texture roughness</span><i><b style="width: 76%"></b></i><em>Improving</em></p>
+          </div>
+          <article class="card note">
+            <h4>Monitoring note</h4>
+            <p>Your scan looks easier to compare than the previous one. This is not a diagnosis.</p>
+          </article>
+        </div>
+        <nav class="tabbar">
+          <button data-go="home"><span>⌂</span>Home</button>
+          <button data-go="scan-setup"><span>◎</span>Scan</button>
+          <button class="tab-active" data-go="history"><span>◷</span>History</button>
+          <button data-go="profile"><span>◉</span>Profile</button>
+        </nav>
+      </section>
+
+      <section class="screen app-screen" data-screen="profile" aria-label="Profile">
+        <div class="status">
+          <span>9:41</span>
+          <span class="status-icons">●● ▭</span>
+        </div>
+        <header class="topbar">
+          <h2>Profile</h2>
+        </header>
+        <div class="content profile-content">
+          <div class="avatar">◉</div>
+          <h3>Alex Johnson</h3>
+          <p>alex.johnson@email.com</p>
+          <article class="card settings-list">
+            <button><span>◎</span><b>My Device</b><small>LumaSkin Clip connected</small></button>
+            <button><span>◫</span><b>Calibration</b><small>Reference card and lighting setup</small></button>
+            <button><span>☼</span><b>Scan Preferences</b><small>Area, reminders, capture settings</small></button>
+            <button><span>◷</span><b>Data & Privacy</b><small>Image storage and permissions</small></button>
+            <button><span>?</span><b>Help & Support</b><small>Safety boundary and product help</small></button>
+            <button><span>i</span><b>About LumaSkin</b><small>Version and product information</small></button>
+          </article>
+        </div>
+        <nav class="tabbar">
+          <button data-go="home"><span>⌂</span>Home</button>
+          <button data-go="scan-setup"><span>◎</span>Scan</button>
+          <button data-go="history"><span>◷</span>History</button>
+          <button class="tab-active" data-go="profile"><span>◉</span>Profile</button>
+        </nav>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>

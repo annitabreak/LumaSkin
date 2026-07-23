@@ -1,0 +1,5 @@
+.DS_Store
+node_modules/
+.vercel/
+.swift-module-cache/
+.clang-module-cache/
