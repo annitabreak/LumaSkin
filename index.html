@@ -18,7 +18,7 @@
   </head>
   <body>
     <main class="app-shell" aria-label="LumaSkin PWA prototype">
-      <section class="screen screen-active" data-screen="splash" aria-label="Splash">
+      <section class="screen screen-active splash-screen" data-screen="splash" aria-label="Splash">
         <div class="status">
           <span>9:41</span>
           <span class="status-icons">●● ▭</span>
@@ -106,7 +106,59 @@
             Compare your scans over time, so visible skin changes are easier to follow
             and discuss.
           </p>
-          <button class="primary" data-go="home">Get Started</button>
+          <button class="primary" data-go="login">Get Started</button>
+        </div>
+      </section>
+
+      <section class="screen login-screen" data-screen="login" aria-label="Login">
+        <div class="login-hero">
+          <img src="/assets/login-hero.png" alt="" />
+          <div class="status over-image">
+            <span>9:41</span>
+            <span class="status-icons">●● ▭</span>
+          </div>
+        </div>
+        <div class="login-panel">
+          <h2>Welcome!</h2>
+          <form class="login-form">
+            <input type="email" inputmode="email" autocomplete="email" placeholder="Email Address" aria-label="Email Address" />
+            <input type="password" autocomplete="current-password" placeholder="Password" aria-label="Password" />
+            <button class="link-button" type="button">Forgot password?</button>
+            <button class="primary" type="button" data-go="home">Login</button>
+          </form>
+          <button class="register-link" type="button" data-go="signup">
+            <span>Not a member?</span> Register now
+          </button>
+          <div class="divider"></div>
+          <p class="social-label">Or continue with</p>
+          <div class="social-row" aria-label="Social login options">
+            <button class="google" type="button">G</button>
+            <button class="apple" type="button">●</button>
+            <button class="facebook" type="button">f</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen signup-screen" data-screen="signup" aria-label="Sign up">
+        <div class="status">
+          <span>9:41</span>
+          <span class="status-icons">●● ▭</span>
+        </div>
+        <header class="topbar">
+          <button class="back" data-go="login">‹</button>
+          <h2>Sign up</h2>
+        </header>
+        <div class="content auth-content">
+          <h3>Create an account to get started</h3>
+          <form class="login-form">
+            <input type="text" autocomplete="name" placeholder="Full Name" aria-label="Full Name" />
+            <input type="email" inputmode="email" autocomplete="email" placeholder="Email Address" aria-label="Email Address" />
+            <input type="password" autocomplete="new-password" placeholder="Password" aria-label="Password" />
+            <button class="primary" type="button" data-go="home">Create account</button>
+          </form>
+          <button class="register-link" type="button" data-go="login">
+            <span>Already have an account?</span> Login
+          </button>
         </div>
       </section>
 
