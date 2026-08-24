@@ -1,0 +1,1868 @@
+import React, { useState, useEffect, useRef } from 'react'
+import Frame54 from '@/imports/Frame54/index'
+import imgHero from '@/assets/img/hero-skin.webp'
+import imgOnboard1 from '@/assets/img/onboarding-1.webp'
+import imgOnboard2 from '@/assets/img/onboarding-2.webp'
+import imgOnboard3 from '@/assets/img/onboarding-3.webp'
+
+type Screen =
+  | 'splash'
+  | 'onboard1'
+  | 'onboard2'
+  | 'onboard3'
+  | 'login'
+  | 'signup'
+  | 'home'
+  | 'scan'
+  | 'scan-prep'
+  | 'scan-upload'
+  | 'scan-quality'
+  | 'scan-analyzing'
+  | 'scan-result'
+  | 'history'
+  | 'face-visited'
+  | 'profile'
+  | 'settings'
+  | 'location'
+
+const PRIMARY = '#9598ea'
+
+// ─── Status Bar ──────────────────────────────────────────────────────────────
+function StatusBar({ light = false }: { light?: boolean }) {
+  const color = light ? 'white' : '#1f2024'
+  return (
+    <div className="flex items-center justify-between px-5 pt-3 pb-1 shrink-0" style={{ height: 44 }}>
+      <span style={{ fontSize: 15, fontWeight: 600, color, letterSpacing: -0.16 }}>9:41</span>
+      <div className="flex items-center gap-1">
+        <svg width="17" height="11" viewBox="0 0 17 11" fill="none">
+          <rect x="0" y="6" width="3" height="5" rx="0.5" fill={color} opacity="0.4" />
+          <rect x="4.5" y="4" width="3" height="7" rx="0.5" fill={color} opacity="0.6" />
+          <rect x="9" y="2" width="3" height="9" rx="0.5" fill={color} opacity="0.8" />
+          <rect x="13.5" y="0" width="3" height="11" rx="0.5" fill={color} />
+        </svg>
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+          <path d="M8 2.4C5.6 2.4 3.4 3.4 1.8 5L0 3.2C2.1 1.2 4.9 0 8 0s5.9 1.2 8 3.2L14.2 5C12.6 3.4 10.4 2.4 8 2.4z" fill={color} opacity="0.4" />
+          <path d="M8 5.6c-1.6 0-3 .6-4.1 1.7L2 5.4C3.5 4 5.6 3.2 8 3.2s4.5.8 6 2.2L12.1 7.3C11 6.2 9.6 5.6 8 5.6z" fill={color} opacity="0.7" />
+          <circle cx="8" cy="10" r="1.5" fill={color} />
+        </svg>
+        <span style={{ fontSize: 13, fontWeight: 400, color }}>100%</span>
+        <svg width="25" height="12" viewBox="0 0 25 12" fill="none">
+          <rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke={color} strokeOpacity="0.35" />
+          <rect x="2" y="2" width="16" height="8" rx="2" fill={color} />
+          <path d="M23 4.5v3a1.5 1.5 0 000-3z" fill={color} fillOpacity="0.4" />
+        </svg>
+      </div>
+    </div>
+  )
+}
+
+// ─── Bottom Nav ───────────────────────────────────────────────────────────────
+function BottomNav({ active, nav }: { active: Screen; nav: (s: Screen) => void }) {
+  const tabs: { screen: Screen; label: string; icon: React.ReactNode }[] = [
+    {
+      screen: 'home',
+      label: 'Home',
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <polyline points="9,22 9,12 15,12 15,22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ),
+    },
+    {
+      screen: 'scan',
+      label: 'Scan',
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+          <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2" />
+          <line x1="12" y1="2" x2="12" y2="5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <line x1="12" y1="19" x2="12" y2="22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <line x1="2" y1="12" x2="5" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <line x1="19" y1="12" x2="22" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      ),
+    },
+    {
+      screen: 'history',
+      label: 'History',
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+          <polyline points="12,6 12,12 16,14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ),
+    },
+    {
+      screen: 'profile',
+      label: 'Profile',
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" />
+        </svg>
+      ),
+    },
+  ]
+
+  return (
+    <div
+      className="flex items-center justify-around bg-white border-t shrink-0"
+      style={{ height: 83, borderColor: '#f0f0f0', paddingBottom: 20 }}
+    >
+      {tabs.map((t) => {
+        const isActive = active === t.screen || (t.screen === 'home' && active === 'location')
+        return (
+          <button
+            key={t.screen}
+            className="flex flex-col items-center gap-0.5"
+            style={{ color: isActive ? PRIMARY : '#8f9098', minWidth: 60 }}
+            onClick={() => nav(t.screen)}
+          >
+            {t.icon}
+            <span style={{ fontSize: 10, fontWeight: isActive ? 600 : 400 }}>{t.label}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── Splash ───────────────────────────────────────────────────────────────────
+function SplashScreen({ onDone }: { onDone: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 1800)
+    return () => clearTimeout(t)
+  }, [onDone])
+
+  return (
+    <div className="flex flex-col items-center justify-center size-full bg-white">
+      <div style={{ width: 160, height: 160 }}>
+        <Frame54 />
+      </div>
+    </div>
+  )
+}
+
+// ─── Onboarding ───────────────────────────────────────────────────────────────
+const onboardingData: { image: string; overlay: string | null; dot: number; title: string; desc: string }[] = [
+  {
+    image: imgOnboard1,
+    overlay: null,
+    dot: 0,
+    title: 'See beyond\na normal skin photo',
+    desc: 'Use controlled optical imaging to reduce glare and reveal skin signals that ordinary photos often miss.',
+  },
+  {
+    image: imgOnboard2,
+    overlay: null,
+    dot: 1,
+    title: 'Multiple channels,\nclearer insight',
+    desc: 'RGB and polarized imaging work together to show redness, texture and lesion boundaries more clearly.',
+  },
+  {
+    image: imgOnboard3,
+    overlay: null,
+    dot: 2,
+    title: 'Track changes\nwith confidence',
+    desc: 'Compare your scans over time, so visible skin changes are easier to follow and discuss.',
+  },
+]
+
+function OnboardingScreen({ index, onNext, onSkip }: { index: number; onNext: () => void; onSkip: () => void }) {
+  const d = onboardingData[index]
+  return (
+    <div className="flex flex-col size-full bg-white">
+      <StatusBar />
+      <div className="flex-1 relative overflow-hidden">
+        <img src={d.image} alt="" className="absolute inset-0 size-full object-cover" />
+        {d.overlay && <img src={d.overlay} alt="" className="absolute inset-0 size-full object-cover" />}
+      </div>
+      <div className="shrink-0 p-6 flex flex-col gap-6">
+        <div className="flex flex-col gap-6 px-2 py-4">
+          <div className="flex gap-2 items-center">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                style={{
+                  width: 8, height: 8, borderRadius: 24,
+                  background: i === d.dot ? PRIMARY : '#1f2024',
+                  opacity: i === d.dot ? 1 : 0.1,
+                }}
+              />
+            ))}
+          </div>
+          <p style={{ fontSize: 24, fontWeight: 800, color: '#000', letterSpacing: 0.24, lineHeight: 1.2, whiteSpace: 'pre-line' }}>
+            {d.title}
+          </p>
+          <p style={{ fontSize: 12, fontWeight: 400, color: '#71727a', lineHeight: '16px', letterSpacing: 0.12 }}>
+            {d.desc}
+          </p>
+        </div>
+        <button
+          className="w-full flex items-center justify-center rounded-xl"
+          style={{ height: 48, background: PRIMARY }}
+          onClick={onNext}
+        >
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'white' }}>
+            {index < 2 ? 'Next' : "Get Started"}
+          </span>
+        </button>
+        {index < 2 && (
+          <button className="w-full text-center" onClick={onSkip}>
+            <span style={{ fontSize: 12, color: '#71727a' }}>Skip</span>
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Login ────────────────────────────────────────────────────────────────────
+function LoginScreen({ nav }: { nav: (s: Screen) => void }) {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPw, setShowPw] = useState(false)
+
+  return (
+    <div className="flex flex-col size-full bg-white">
+      <StatusBar />
+      <div className="flex-1 relative overflow-hidden" style={{ maxHeight: 300 }}>
+        <img src={imgHero} alt="" className="absolute inset-0 size-full object-cover" />
+      </div>
+      <div className="flex flex-col gap-6 px-6 py-10">
+        <p style={{ fontSize: 24, fontWeight: 800, color: '#000', letterSpacing: 0.24 }}>Welcome!</p>
+        <div className="flex flex-col gap-4">
+          {/* Email */}
+          <div className="flex flex-col gap-2">
+            <div
+              className="flex items-center px-4 rounded-xl"
+              style={{ height: 48, border: email ? `1.5px solid ${PRIMARY}` : '1px solid #c5c6cc' }}
+            >
+              <input
+                className="flex-1 outline-none bg-transparent"
+                style={{ fontSize: 14, color: '#1f2024' }}
+                placeholder="Email Address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+          </div>
+          {/* Password */}
+          <div className="flex flex-col gap-2">
+            <div
+              className="flex items-center px-4 rounded-xl"
+              style={{ height: 48, border: password ? `1.5px solid ${PRIMARY}` : '1px solid #c5c6cc' }}
+            >
+              <input
+                className="flex-1 outline-none bg-transparent"
+                style={{ fontSize: 14, color: '#1f2024' }}
+                type={showPw ? 'text' : 'password'}
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button onClick={() => setShowPw(!showPw)}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#8f9098" strokeWidth="2" />
+                  <circle cx="12" cy="12" r="3" stroke="#8f9098" strokeWidth="2" />
+                  {showPw && <line x1="4" y1="4" x2="20" y2="20" stroke="#8f9098" strokeWidth="2" strokeLinecap="round" />}
+                </svg>
+              </button>
+            </div>
+          </div>
+          <button>
+            <span style={{ fontSize: 12, fontWeight: 600, color: PRIMARY }}>Forgot password?</span>
+          </button>
+        </div>
+        <div className="flex flex-col gap-4">
+          <button
+            className="w-full flex items-center justify-center rounded-xl"
+            style={{ height: 48, background: PRIMARY }}
+            onClick={() => nav('home')}
+          >
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'white' }}>Login</span>
+          </button>
+          <p className="text-center" style={{ fontSize: 12, color: '#71727a' }}>
+            Not a member?{' '}
+            <button onClick={() => nav('signup')}>
+              <span style={{ fontWeight: 600, color: PRIMARY }}>Register now</span>
+            </button>
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div style={{ flex: 1, height: 0.5, background: '#D4D6DD' }} />
+          <span style={{ fontSize: 12, color: '#71727a' }}>Or continue with</span>
+          <div style={{ flex: 1, height: 0.5, background: '#D4D6DD' }} />
+        </div>
+        <div className="flex items-center justify-center gap-3">
+          <button className="flex items-center justify-center rounded-full size-10" style={{ background: '#ed3241' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+              <path d="M21.8 10.4H12v3.6h5.7c-.6 3-3.2 4.8-5.7 4.8-3.3 0-6-2.7-6-6s2.7-6 6-6c1.5 0 2.8.6 3.8 1.5l2.7-2.7C16.8 3.8 14.5 3 12 3 7 3 3 7 3 12s4 9 9 9c5 0 9-3.6 9-8.6 0-.7-.1-1.4-.2-2z" />
+            </svg>
+          </button>
+          <button className="flex items-center justify-center rounded-full size-10" style={{ background: '#1f2024' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+              <path d="M12 2C6.5 2 2 6.5 2 12c0 4.4 2.9 8.2 6.8 9.5.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.6.3-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1.1.8-.2 1.7-.3 2.5-.3s1.7.1 2.5.3c2-1.4 2.8-1.1 2.8-1.1.5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.8-2.3 4.7-4.6 4.9.4.3.7 1 .7 2v2.9c0 .3.2.6.7.5 4-1.3 6.8-5.1 6.8-9.5C22 6.5 17.5 2 12 2z" />
+            </svg>
+          </button>
+          <button className="flex items-center justify-center rounded-full size-10" style={{ background: PRIMARY }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.73-8.835L1.254 2.25H8.08l4.266 5.64z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Sign Up ──────────────────────────────────────────────────────────────────
+function SignUpScreen({ nav }: { nav: (s: Screen) => void }) {
+  const [name, setName] = useState('Luc')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [showModal, setShowModal] = useState(false)
+
+  return (
+    <div className="flex flex-col size-full bg-white">
+      <StatusBar />
+      <div className="flex flex-col gap-4 px-6 pt-6 pb-10 flex-1 overflow-y-auto">
+        <div className="flex flex-col gap-2">
+          <p style={{ fontSize: 16, fontWeight: 800, color: '#1f2024', letterSpacing: 0.08 }}>Sign up</p>
+          <p style={{ fontSize: 12, color: '#71727a', lineHeight: '16px' }}>Create an account to get started</p>
+        </div>
+        {/* Name */}
+        {[
+          { label: 'First Name', value: name, setValue: setName, active: true, placeholder: 'Your name' },
+          { label: 'Email', value: email, setValue: setEmail, active: false, placeholder: 'name@email.com' },
+          { label: 'Password', value: password, setValue: setPassword, active: false, placeholder: 'Create a password' },
+          { label: 'Confirm Password', value: confirm, setValue: setConfirm, active: false, placeholder: 'Confirm password' },
+        ].map((field) => (
+          <div key={field.label} className="flex flex-col gap-2">
+            <div
+              className="flex items-center px-4 rounded-xl"
+              style={{
+                height: 48,
+                border: field.active ? `1.5px solid ${PRIMARY}` : '1px solid #c5c6cc',
+              }}
+            >
+              <input
+                className="flex-1 outline-none bg-transparent"
+                style={{ fontSize: 14, color: '#1f2024' }}
+                placeholder={field.placeholder}
+                value={field.value}
+                onChange={(e) => field.setValue(e.target.value)}
+              />
+            </div>
+          </div>
+        ))}
+
+        {/* Keyboard placeholder */}
+        <div
+          className="rounded-xl overflow-hidden shrink-0"
+          style={{ background: '#d1d5db' }}
+        >
+          <div className="grid grid-cols-10 gap-1 p-2">
+            {'QWERTYUIOP'.split('').map((k) => (
+              <div key={k} className="flex items-center justify-center rounded bg-white" style={{ height: 36, fontSize: 12, fontWeight: 500 }}>
+                {k}
+              </div>
+            ))}
+            {'ASDFGHJKL'.split('').map((k) => (
+              <div key={k} className="flex items-center justify-center rounded bg-white col-start-auto" style={{ height: 36, fontSize: 12, fontWeight: 500, gridColumn: 'span 1' }}>
+                {k}
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2 px-2 pb-2">
+            {['⇧', ...('ZXCVBNM'.split('')), '⌫'].map((k) => (
+              <div key={k} className="flex-1 flex items-center justify-center rounded bg-white" style={{ height: 36, fontSize: k === '⇧' || k === '⌫' ? 14 : 12 }}>
+                {k}
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2 px-2 pb-3">
+            <div className="flex items-center justify-center rounded bg-white" style={{ height: 36, width: 70, fontSize: 11 }}>123</div>
+            <div className="flex-1 flex items-center justify-center rounded bg-white" style={{ height: 36, fontSize: 11 }}>space</div>
+            <button
+              className="flex items-center justify-center rounded"
+              style={{ height: 36, width: 70, background: PRIMARY, fontSize: 11, color: 'white', fontWeight: 600 }}
+              onClick={() => setShowModal(true)}
+            >
+              done
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {showModal && (
+        <div className="absolute inset-0 flex items-end z-50" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="w-full bg-white rounded-t-3xl p-8 flex flex-col gap-6 items-center">
+            <div className="w-10 h-1 rounded-full bg-gray-300" />
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="flex items-center justify-center rounded-full size-14" style={{ background: '#e8e9f1' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M20 6L9 17l-5-5" stroke={PRIMARY} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <p style={{ fontSize: 18, fontWeight: 700, color: '#1f2024' }}>Save confirmation</p>
+              <p style={{ fontSize: 13, color: '#71727a', lineHeight: '18px' }}>Your account has been created successfully. You can now log in.</p>
+            </div>
+            <button
+              className="w-full flex items-center justify-center rounded-xl"
+              style={{ height: 48, background: PRIMARY }}
+              onClick={() => nav('login')}
+            >
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>Continue to Login</span>
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Home / Dashboard ─────────────────────────────────────────────────────────
+const skinMetrics = [
+  { label: 'Moisture', value: 78, color: '#9598ea', icon: '💧' },
+  { label: 'Texture', value: 85, color: '#6ee7b7', icon: '✨' },
+  { label: 'Redness', value: 62, color: '#fca5a5', icon: '🔴' },
+  { label: 'Pores', value: 71, color: '#fcd34d', icon: '⭕' },
+]
+
+function HomeScreen({ nav, navToLocation }: { nav: (s: Screen) => void; navToLocation: () => void }) {
+  const score = 82
+
+  return (
+    <div className="flex flex-col size-full bg-[#f8f9fe]">
+      <StatusBar />
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 pb-4">
+        <div className="flex flex-col gap-0.5">
+          <button
+            className="flex items-center gap-1.5 self-start"
+            onClick={navToLocation}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill={PRIMARY} />
+              <circle cx="12" cy="9" r="2.5" fill="white" />
+            </svg>
+            <span style={{ fontSize: 11, color: PRIMARY, fontWeight: 600 }}>New York, US</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+              <path d="M6 9l6 6 6-6" stroke={PRIMARY} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <p style={{ fontSize: 18, fontWeight: 700, color: '#1f2024' }}>Ava Johnson</p>
+        </div>
+        <button
+          className="flex items-center justify-center rounded-full size-9 overflow-hidden"
+          style={{ background: '#e8e9f1' }}
+          onClick={() => nav('profile')}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke="#8f9098" strokeWidth="2" strokeLinecap="round" />
+            <circle cx="12" cy="7" r="4" stroke="#8f9098" strokeWidth="2" />
+          </svg>
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-4">
+        {/* Score Card */}
+        <div
+          className="rounded-3xl p-5 flex items-center gap-4"
+          style={{ background: `linear-gradient(135deg, ${PRIMARY} 0%, #6b8ff8 100%)` }}
+        >
+          <div className="flex flex-col gap-1 flex-1">
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)' }}>Discovering Level</p>
+            <div className="flex items-baseline gap-1">
+              <p style={{ fontSize: 48, fontWeight: 900, color: 'white', lineHeight: 1 }}>{score}</p>
+              <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>/100</p>
+            </div>
+            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>Bravo! You're doing great</p>
+            <button
+              className="mt-3 flex items-center justify-center rounded-xl"
+              style={{ height: 36, background: 'rgba(255,255,255,0.2)', width: 120 }}
+              onClick={() => nav('scan')}
+            >
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'white' }}>Progress Score →</span>
+            </button>
+          </div>
+          <div
+            className="flex items-center justify-center rounded-full shrink-0"
+            style={{ width: 80, height: 80, background: 'rgba(255,255,255,0.15)' }}
+          >
+            <div
+              className="flex items-center justify-center rounded-full"
+              style={{ width: 60, height: 60, background: 'rgba(255,255,255,0.2)' }}
+            >
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M6 20v-2a4 4 0 014-4h4a4 4 0 014 4v2" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        {/* Healthy Check */}
+        <div className="bg-white rounded-2xl p-4 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <p style={{ fontSize: 14, fontWeight: 700, color: '#1f2024' }}>Healthy check</p>
+            <button onClick={() => nav('scan')}>
+              <span style={{ fontSize: 11, color: PRIMARY, fontWeight: 600 }}>Scan now</span>
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {skinMetrics.map((m) => (
+              <div key={m.label} className="flex flex-col gap-2 p-3 rounded-xl" style={{ background: '#f8f9fe' }}>
+                <div className="flex items-center justify-between">
+                  <span style={{ fontSize: 11, color: '#8f9098' }}>{m.label}</span>
+                  <span style={{ fontSize: 10 }}>{m.icon}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <p style={{ fontSize: 20, fontWeight: 800, color: '#1f2024' }}>{m.value}</p>
+                  <p style={{ fontSize: 10, color: '#8f9098' }}>/ 100</p>
+                </div>
+                <div className="rounded-full overflow-hidden" style={{ height: 4, background: '#e8e9f1' }}>
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{ width: `${m.value}%`, background: m.color }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Skin score breakdown */}
+        <div className="bg-white rounded-2xl p-4 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <p style={{ fontSize: 14, fontWeight: 700, color: '#1f2024' }}>Marking test</p>
+            <span style={{ fontSize: 11, color: '#8f9098' }}>This week</span>
+          </div>
+          {[
+            { label: 'Skin Health', value: 88, color: PRIMARY },
+            { label: 'UV Protection', value: 55, color: '#f59e0b' },
+            { label: 'Hydration', value: 72, color: '#6ee7b7' },
+            { label: 'Anti-aging', value: 64, color: '#f87171' },
+          ].map((item) => (
+            <div key={item.label} className="flex items-center gap-3">
+              <span style={{ fontSize: 11, color: '#8f9098', width: 90, flexShrink: 0 }}>{item.label}</span>
+              <div className="flex-1 rounded-full overflow-hidden" style={{ height: 6, background: '#f0f0f5' }}>
+                <div
+                  className="h-full rounded-full"
+                  style={{ width: `${item.value}%`, background: item.color }}
+                />
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 600, color: '#1f2024', width: 28, textAlign: 'right' }}>{item.value}</span>
+            </div>
+          ))}
+        </div>
+
+      </div>
+    </div>
+  )
+}
+
+// ─── Scan Screen ──────────────────────────────────────────────────────────────
+
+type ScanStep = 'prep' | 'upload' | 'quality' | 'analyzing' | 'result'
+
+const CHANNELS = [
+  {
+    id: 'rgb',
+    label: 'RGB / White-light',
+    tag: 'Channel 1 of 3',
+    color: '#f59e0b',
+    bgLight: '#fef3c7',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="2" />
+        <line x1="12" y1="1" x2="12" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <line x1="12" y1="21" x2="12" y2="23" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <line x1="1" y1="12" x2="3" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <line x1="21" y1="12" x2="23" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    ),
+    filterInstruction: 'Remove all filters from the clip-on module',
+    filterColor: 'No filter — white LED ring only',
+    desc: 'Overall skin tone, lesion location, colour distribution',
+    tip: 'Use the LED ring as the only light source. Room lights off.',
+  },
+  {
+    id: 'cross-pol',
+    label: 'Cross-polarized',
+    tag: 'Channel 2 of 3',
+    color: '#6366f1',
+    bgLight: '#eef2ff',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <circle cx="8" cy="12" r="5" stroke="currentColor" strokeWidth="2" />
+        <circle cx="16" cy="12" r="5" stroke="currentColor" strokeWidth="2" />
+        <path d="M11 9.27A5 5 0 0 1 13 9.27" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path d="M11 14.73A5 5 0 0 0 13 14.73" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    ),
+    filterInstruction: 'Attach the cross-polarized filter (marked ✕)',
+    filterColor: 'Dark grey filter — arrows at 90°',
+    desc: 'Suppresses surface glare; reveals redness, diffuse signals and lesion boundaries',
+    tip: 'Ensure the analyzer filter on the module is perpendicular to the light polarizer.',
+  },
+  {
+    id: 'parallel-pol',
+    label: 'Parallel-polarized',
+    tag: 'Channel 3 of 3',
+    color: '#0ea5e9',
+    bgLight: '#e0f2fe',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <line x1="4" y1="6" x2="20" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <line x1="4" y1="18" x2="20" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    ),
+    filterInstruction: 'Swap to the parallel-polarized filter (marked ∥)',
+    filterColor: 'Light grey filter — arrows aligned',
+    desc: 'Surface-selective: shininess, oiliness, scaling, texture roughness',
+    tip: 'Rotate the analyzer to align with the light polarizer (same angle).',
+  },
+]
+
+const PREP_STEPS = [
+  { icon: '🧼', title: 'Clean the area', desc: 'Gently cleanse the skin region you plan to image. Pat dry.' },
+  { icon: '🌑', title: 'Darken the room', desc: 'Turn off ambient lights. The LED ring is your only light source for consistent results.' },
+  { icon: '💡', title: 'Power the LED ring', desc: 'Activate the ring light on the module. Keep it on for all three captures.' },
+  { icon: '🎨', title: 'Prepare the colour card', desc: 'Hold the grey reference card beside the skin area in every shot. It stays in frame for all three images — this is how we calibrate each scan.' },
+  { icon: '📏', title: 'Set distance', desc: 'Hold the phone 15–20 cm from the skin. Keep the framing consistent across all three shots.' },
+]
+
+function QualityBadge({ pass }: { pass: boolean }) {
+  return (
+    <div
+      className="flex items-center gap-1 px-2 py-0.5 rounded-full"
+      style={{ background: pass ? '#d1fae5' : '#fee2e2' }}
+    >
+      <div className="rounded-full" style={{ width: 6, height: 6, background: pass ? '#10b981' : '#ef4444' }} />
+      <span style={{ fontSize: 10, fontWeight: 600, color: pass ? '#065f46' : '#991b1b' }}>
+        {pass ? 'Pass' : 'Review'}
+      </span>
+    </div>
+  )
+}
+
+function ScanScreen({ nav, initialStep = 'prep' }: { nav: (s: Screen) => void; initialStep?: ScanStep }) {
+  const [step, setStep] = useState<ScanStep>(initialStep)
+  const [prepChecked, setPrepChecked] = useState<boolean[]>(Array(PREP_STEPS.length).fill(false))
+  const [uploads, setUploads] = useState<(string | null)[]>(Array(3).fill(null))
+  const [activeChannel, setActiveChannel] = useState(0)
+  const [progress, setProgress] = useState(0)
+  const animRef = useRef<number>(0)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const allPrepDone = prepChecked.every(Boolean)
+  const allUploaded = uploads.every(Boolean)
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const url = URL.createObjectURL(file)
+    setUploads((prev) => {
+      const next = [...prev]
+      next[activeChannel] = url
+      return next
+    })
+    // Auto-advance to next empty channel
+    const nextEmpty = uploads.findIndex((u, i) => i > activeChannel && i < CHANNELS.length && !u)
+    if (nextEmpty !== -1) setActiveChannel(nextEmpty)
+    e.target.value = ''
+  }
+
+  const startAnalysis = () => {
+    setStep('analyzing')
+    let p = 0
+    const tick = () => {
+      p += 0.6
+      setProgress(Math.min(p, 100))
+      if (p < 100) {
+        animRef.current = requestAnimationFrame(tick)
+      } else {
+        setTimeout(() => setStep('result'), 500)
+      }
+    }
+    animRef.current = requestAnimationFrame(tick)
+  }
+
+  useEffect(() => () => cancelAnimationFrame(animRef.current), [])
+
+  const reset = () => {
+    setStep('prep')
+    setPrepChecked(Array(PREP_STEPS.length).fill(false))
+    setUploads(Array(4).fill(null))
+    setActiveChannel(0)
+    setProgress(0)
+  }
+
+  // ── Prep ────────────────────────────────────────────────────────────────────
+  if (step === 'prep') {
+    return (
+      <div className="flex flex-col size-full bg-[#f8f9fe]">
+        <StatusBar />
+        <div className="flex items-center px-5 pb-3 gap-3">
+          <button onClick={() => nav('home')}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M15 18l-6-6 6-6" stroke="#1f2024" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <div className="flex-1">
+            <p style={{ fontSize: 15, fontWeight: 700, color: '#1f2024' }}>Setup Checklist</p>
+            <p style={{ fontSize: 10, color: '#8f9098' }}>{prepChecked.filter(Boolean).length} of {PREP_STEPS.length} steps done</p>
+          </div>
+          {/* Step indicator */}
+          <div className="flex gap-1">
+            {(['prep','upload','quality','result'] as const).map((s) => (
+              <div key={s} className="rounded-full" style={{ width: 6, height: 6, background: step === s ? PRIMARY : '#e0e7ff' }} />
+            ))}
+          </div>
+        </div>
+
+        {/* Module illustration */}
+        <div
+          className="mx-5 mb-4 rounded-2xl p-4 flex items-center gap-4"
+          style={{ background: `linear-gradient(135deg, ${PRIMARY}15 0%, #6b8ff815 100%)`, border: `1px solid ${PRIMARY}30` }}
+        >
+          <div
+            className="flex items-center justify-center rounded-2xl shrink-0"
+            style={{ width: 56, height: 56, background: `linear-gradient(135deg, ${PRIMARY} 0%, #6b8ff8 100%)` }}
+          >
+            <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+              <circle cx="16" cy="16" r="10" stroke="white" strokeWidth="2" />
+              <circle cx="16" cy="16" r="6" stroke="white" strokeWidth="1.5" />
+              <circle cx="16" cy="16" r="2.5" fill="white" />
+              <path d="M6 16H2M26 16H30M16 6V2M16 26V30" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </div>
+          <div>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#1f2024' }}>Clip-on Optical Module</p>
+            <p style={{ fontSize: 11, color: '#71727a', marginTop: 2, lineHeight: '15px' }}>
+              Attach to front-facing camera before starting. You'll swap filters between shots.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 pb-5 flex flex-col gap-3">
+          {PREP_STEPS.map((s, i) => (
+            <button
+              key={i}
+              className="flex items-start gap-3 p-4 rounded-2xl text-left transition-all"
+              style={{
+                background: prepChecked[i] ? '#f0fdf4' : 'white',
+                border: prepChecked[i] ? '1.5px solid #86efac' : '1.5px solid transparent',
+              }}
+              onClick={() => setPrepChecked((prev) => { const n = [...prev]; n[i] = !n[i]; return n })}
+            >
+              <div
+                className="flex items-center justify-center rounded-full shrink-0 transition-all"
+                style={{ width: 28, height: 28, background: prepChecked[i] ? '#10b981' : '#f0f0f5', marginTop: 1 }}
+              >
+                {prepChecked[i] ? (
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                    <path d="M3 8l3.5 3.5L13 5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                ) : (
+                  <span style={{ fontSize: 14 }}>{s.icon}</span>
+                )}
+              </div>
+              <div className="flex-1">
+                <p style={{ fontSize: 13, fontWeight: 600, color: prepChecked[i] ? '#065f46' : '#1f2024' }}>{s.title}</p>
+                <p style={{ fontSize: 11, color: '#71727a', marginTop: 2, lineHeight: '15px' }}>{s.desc}</p>
+              </div>
+            </button>
+          ))}
+
+          <button
+            className="w-full flex items-center justify-center rounded-xl mt-2 transition-opacity"
+            style={{ height: 56, background: allPrepDone ? PRIMARY : '#c5c6cc', opacity: allPrepDone ? 1 : 0.6 }}
+            disabled={!allPrepDone}
+            onClick={() => setStep('upload')}
+          >
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>
+              {allPrepDone ? 'Continue to Upload Images →' : `Complete all ${PREP_STEPS.length} steps to continue`}
+            </span>
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Upload ───────────────────────────────────────────────────────────────────
+  if (step === 'upload') {
+    const safeChannel = Math.min(activeChannel, CHANNELS.length - 1)
+    const ch = CHANNELS[safeChannel]
+    const uploadedCount = uploads.filter(Boolean).length
+
+    return (
+      <div className="flex flex-col size-full bg-[#f8f9fe]">
+        <StatusBar />
+        <div className="flex items-center px-5 pb-3 gap-3">
+          <button onClick={() => setStep('prep')}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M15 18l-6-6 6-6" stroke="#1f2024" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <div className="flex-1">
+            <p style={{ fontSize: 15, fontWeight: 700, color: '#1f2024' }}>Upload Images</p>
+            <p style={{ fontSize: 10, color: '#8f9098' }}>{uploadedCount} of 3 channels uploaded</p>
+          </div>
+          <div className="flex gap-1">
+            {(['prep','upload','quality','result'] as const).map((s, i) => (
+              <div key={s} className="rounded-full" style={{ width: 6, height: 6, background: step === s ? PRIMARY : i < 1 ? '#10b981' : '#e0e7ff' }} />
+            ))}
+          </div>
+        </div>
+
+        {/* Channel selector pills */}
+        <div className="flex gap-2 px-5 mb-4 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+          {CHANNELS.map((c, i) => (
+            <button
+              key={c.id}
+              onClick={() => setActiveChannel(i)}
+              className="flex items-center gap-1.5 px-3 rounded-full shrink-0 transition-all"
+              style={{
+                height: 32,
+                background: activeChannel === i ? c.color : uploads[i] ? '#f0fdf4' : 'white',
+                border: activeChannel === i ? 'none' : uploads[i] ? '1.5px solid #86efac' : '1.5px solid #e0e0e8',
+              }}
+            >
+              {uploads[i] && activeChannel !== i && (
+                <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 6l2.5 2.5L10 4" stroke="#10b981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+              <span style={{ fontSize: 11, fontWeight: 600, color: activeChannel === i ? 'white' : uploads[i] ? '#065f46' : '#1f2024', whiteSpace: 'nowrap' }}>
+                {i + 1}. {c.label.split('/')[0].trim()}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 pb-5 flex flex-col gap-4">
+          {/* Colour card reminder */}
+          <div
+            className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+            style={{ background: '#fef9ee', border: '1.5px solid #fcd34d' }}
+          >
+            <span style={{ fontSize: 20 }}>🎨</span>
+            <p style={{ fontSize: 11, color: '#92400e', lineHeight: '15px' }}>
+              <strong>Hold the grey reference card beside the skin area in every shot.</strong> It must appear in all three images for calibration to work.
+            </p>
+          </div>
+
+          {/* Channel detail card */}
+          <div
+            className="rounded-2xl p-4 flex flex-col gap-3"
+            style={{ background: ch.bgLight, border: `1.5px solid ${ch.color}40` }}
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className="flex items-center justify-center rounded-xl shrink-0"
+                style={{ width: 44, height: 44, background: ch.color, color: 'white' }}
+              >
+                {ch.icon}
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <p style={{ fontSize: 13, fontWeight: 700, color: '#1f2024' }}>{ch.label}</p>
+                  <span style={{ fontSize: 9, fontWeight: 600, color: ch.color, background: `${ch.color}20`, borderRadius: 6, padding: '2px 6px' }}>{ch.tag}</span>
+                </div>
+                <p style={{ fontSize: 11, color: '#71727a', marginTop: 3, lineHeight: '15px' }}>{ch.desc}</p>
+              </div>
+            </div>
+
+            {/* Filter instruction */}
+            <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'white' }}>
+              <div
+                className="flex items-center justify-center rounded-lg shrink-0"
+                style={{ width: 36, height: 36, background: `${ch.color}15` }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke={ch.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 700, color: '#1f2024' }}>Filter Setup</p>
+                <p style={{ fontSize: 11, color: '#71727a', marginTop: 1 }}>{ch.filterInstruction}</p>
+                <p style={{ fontSize: 10, color: ch.color, fontWeight: 600, marginTop: 2 }}>{ch.filterColor}</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2 p-3 rounded-xl" style={{ background: `${ch.color}10` }}>
+              <span style={{ fontSize: 13 }}>💡</span>
+              <p style={{ fontSize: 11, color: '#1f2024', lineHeight: '15px' }}>{ch.tip}</p>
+            </div>
+          </div>
+
+          {/* Upload zone */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+
+          {uploads[activeChannel] ? (
+            <div className="flex flex-col gap-3">
+              <div
+                className="rounded-2xl overflow-hidden relative"
+                style={{ height: 180 }}
+              >
+                <img src={uploads[activeChannel]!} alt="" className="size-full object-cover" />
+                <div className="absolute inset-0 flex items-end p-3">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ background: 'rgba(0,0,0,0.6)' }}>
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                      <path d="M3 8l3.5 3.5L13 5" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span style={{ fontSize: 11, color: 'white', fontWeight: 600 }}>{ch.label} uploaded</span>
+                  </div>
+                </div>
+              </div>
+              <button
+                className="w-full flex items-center justify-center gap-2 rounded-xl"
+                style={{ height: 44, background: 'white', border: `1.5px solid ${ch.color}` }}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke={ch.color} strokeWidth="2" />
+                  <circle cx="12" cy="13" r="4" stroke={ch.color} strokeWidth="2" />
+                </svg>
+                <span style={{ fontSize: 12, fontWeight: 600, color: ch.color }}>Replace Image</span>
+              </button>
+            </div>
+          ) : (
+            <button
+              className="w-full flex flex-col items-center justify-center gap-3 rounded-2xl"
+              style={{ height: 180, background: 'white', border: `2px dashed ${ch.color}50` }}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <div
+                className="flex items-center justify-center rounded-2xl"
+                style={{ width: 56, height: 56, background: ch.bgLight }}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" stroke={ch.color} strokeWidth="2" strokeLinecap="round" />
+                  <polyline points="17 8 12 3 7 8" stroke={ch.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <line x1="12" y1="3" x2="12" y2="15" stroke={ch.color} strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </div>
+              <div className="text-center">
+                <p style={{ fontSize: 13, fontWeight: 700, color: '#1f2024' }}>Choose from Gallery</p>
+                <p style={{ fontSize: 11, color: '#8f9098', marginTop: 3 }}>Upload {ch.label} image</p>
+              </div>
+            </button>
+          )}
+
+          {/* Progress strip */}
+          <div className="flex gap-2">
+            {CHANNELS.map((c, i) => (
+              <div key={c.id} className="flex-1 flex flex-col items-center gap-1">
+                <div
+                  className="w-full rounded-full"
+                  style={{ height: 4, background: uploads[i] ? c.color : '#e0e0e8' }}
+                />
+                <span style={{ fontSize: 9, color: uploads[i] ? c.color : '#c5c6cc', fontWeight: 600 }}>
+                  {uploads[i] ? '✓' : i + 1}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <button
+            className="w-full flex items-center justify-center rounded-xl transition-opacity"
+            style={{ height: 48, background: allUploaded ? PRIMARY : '#c5c6cc', opacity: allUploaded ? 1 : 0.6 }}
+            disabled={!allUploaded}
+            onClick={() => setStep('quality')}
+          >
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>
+              {allUploaded ? 'Continue to Quality Check →' : `${3 - uploadedCount} image${3 - uploadedCount > 1 ? 's' : ''} remaining`}
+            </span>
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Quality Check ────────────────────────────────────────────────────────────
+  if (step === 'quality') {
+    const checks = [
+      { label: 'Sharpness', detail: 'All 3 images pass focus threshold', pass: true },
+      { label: 'Alignment', detail: 'Skin region detected in consistent position', pass: true },
+      { label: 'Exposure', detail: 'Brightness within acceptable range', pass: true },
+      { label: 'Colour card visible', detail: 'Reference card detected in all 3 images', pass: true },
+      { label: 'Channel completeness', detail: 'All 3 optical channels present', pass: true },
+    ]
+    return (
+      <div className="flex flex-col size-full bg-[#f8f9fe]">
+        <StatusBar />
+        <div className="flex items-center px-5 pb-3 gap-3">
+          <button onClick={() => setStep('upload')}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M15 18l-6-6 6-6" stroke="#1f2024" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <div className="flex-1">
+            <p style={{ fontSize: 15, fontWeight: 700, color: '#1f2024' }}>Image Quality Check</p>
+            <p style={{ fontSize: 10, color: '#8f9098' }}>Review before analysis</p>
+          </div>
+          <div className="flex gap-1">
+            {(['prep','upload','quality','result'] as const).map((s, i) => (
+              <div key={s} className="rounded-full" style={{ width: 6, height: 6, background: step === s ? PRIMARY : i < 2 ? '#10b981' : '#e0e7ff' }} />
+            ))}
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 pb-5 flex flex-col gap-4">
+          {/* Thumbnail strip */}
+          <div className="flex gap-2">
+            {CHANNELS.map((c, i) => (
+              <div
+                key={c.id}
+                className="flex-1 rounded-xl overflow-hidden relative"
+                style={{ height: 72, background: '#f0f0f8' }}
+              >
+                {uploads[i] && <img src={uploads[i]!} alt="" className="size-full object-cover" />}
+                <div
+                  className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-1.5 py-1"
+                  style={{ background: 'rgba(0,0,0,0.55)' }}
+                >
+                  <span style={{ fontSize: 8, color: 'white', fontWeight: 600 }}>{i + 1}</span>
+                  <div className="rounded-full" style={{ width: 6, height: 6, background: c.color }} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Quality checks */}
+          <div className="bg-white rounded-2xl overflow-hidden">
+            <div className="px-4 pt-4 pb-2">
+              <p style={{ fontSize: 13, fontWeight: 700, color: '#1f2024' }}>Automated Checks</p>
+            </div>
+            {checks.map((c, i) => (
+              <div
+                key={c.label}
+                className="flex items-center gap-3 px-4"
+                style={{ height: 60, borderTop: i === 0 ? 'none' : '1px solid #f0f0f5' }}
+              >
+                <div
+                  className="flex items-center justify-center rounded-full shrink-0"
+                  style={{ width: 32, height: 32, background: c.pass ? '#d1fae5' : '#fee2e2' }}
+                >
+                  {c.pass ? (
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                      <path d="M3 8l3.5 3.5L13 5" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  ) : (
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                      <path d="M4 4l8 8M12 4l-8 8" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" />
+                    </svg>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p style={{ fontSize: 12, fontWeight: 600, color: '#1f2024' }}>{c.label}</p>
+                  <p style={{ fontSize: 10, color: '#8f9098', marginTop: 1 }}>{c.detail}</p>
+                </div>
+                <QualityBadge pass={c.pass} />
+              </div>
+            ))}
+          </div>
+
+          {/* Note */}
+          <div className="flex items-start gap-3 p-4 rounded-2xl" style={{ background: '#fffbeb', border: '1.5px solid #fcd34d' }}>
+            <span style={{ fontSize: 16 }}>ℹ️</span>
+            <p style={{ fontSize: 11, color: '#78350f', lineHeight: '15px' }}>
+              This report is <strong>non-diagnostic</strong>. It shows optical features only — redness area, boundary clarity, surface shine, texture roughness, and repeatability. It is not a medical assessment.
+            </p>
+          </div>
+
+          <button
+            className="w-full flex items-center justify-center rounded-xl"
+            style={{ height: 48, background: PRIMARY }}
+            onClick={startAnalysis}
+          >
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>Analyze Images</span>
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Analyzing ────────────────────────────────────────────────────────────────
+  if (step === 'analyzing') {
+    const analysisTasks = [
+      { label: 'Loading RGB channel…', threshold: 10, channel: CHANNELS[0].color },
+      { label: 'Extracting cross-polarized signal…', threshold: 30, channel: CHANNELS[1].color },
+      { label: 'Mapping surface texture (parallel-pol)…', threshold: 55, channel: CHANNELS[2].color },
+      { label: 'Calibrating colour card reference…', threshold: 70, channel: '#10b981' },
+      { label: 'Computing redness area…', threshold: 80, channel: '#ef4444' },
+      { label: 'Scoring boundary clarity…', threshold: 88, channel: '#f59e0b' },
+      { label: 'Measuring surface shine index…', threshold: 94, channel: '#0ea5e9' },
+      { label: 'Generating longitudinal report…', threshold: 100, channel: PRIMARY },
+    ]
+
+    return (
+      <div className="flex flex-col size-full" style={{ background: '#07070f' }}>
+        <StatusBar light />
+        <div className="flex items-center px-5 pb-4 gap-3">
+          <p style={{ fontSize: 15, fontWeight: 700, color: 'white' }}>Multi-channel Analysis</p>
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-between px-6 pb-8">
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>
+            Do not close the app
+          </p>
+          {/* Circular progress */}
+          <div className="flex flex-col items-center gap-6">
+            <div className="relative flex items-center justify-center" style={{ width: 200, height: 200 }}>
+              <svg width="200" height="200" viewBox="0 0 200 200" style={{ position: 'absolute', transform: 'rotate(-90deg)' }}>
+                <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
+                <circle
+                  cx="100" cy="100" r="88" fill="none"
+                  stroke={PRIMARY} strokeWidth="8"
+                  strokeLinecap="round"
+                  strokeDasharray={`${2 * Math.PI * 88}`}
+                  strokeDashoffset={`${2 * Math.PI * 88 * (1 - progress / 100)}`}
+                  style={{ transition: 'stroke-dashoffset 0.04s linear' }}
+                />
+              </svg>
+              {/* Four channel arcs */}
+              {CHANNELS.map((c, i) => {
+                const r = 68
+                const segAngle = 360 / 4
+                const startDeg = i * segAngle - 90
+                const endDeg = startDeg + segAngle - 4
+                const toRad = (d: number) => (d * Math.PI) / 180
+                const x1 = 100 + r * Math.cos(toRad(startDeg))
+                const y1 = 100 + r * Math.sin(toRad(startDeg))
+                const x2 = 100 + r * Math.cos(toRad(endDeg))
+                const y2 = 100 + r * Math.sin(toRad(endDeg))
+                const lit = progress >= (i + 1) * 25
+                return (
+                  <svg key={c.id} width="200" height="200" viewBox="0 0 200 200" style={{ position: 'absolute' }}>
+                    <path
+                      d={`M ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2}`}
+                      fill="none" stroke={lit ? c.color : 'rgba(255,255,255,0.08)'} strokeWidth="5" strokeLinecap="round"
+                    />
+                  </svg>
+                )
+              })}
+              <div className="flex flex-col items-center gap-0.5">
+                <p style={{ fontSize: 44, fontWeight: 900, color: 'white', lineHeight: 1 }}>{Math.round(progress)}%</p>
+                <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>processing</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 w-full" style={{ maxWidth: 280 }}>
+              {analysisTasks.map((task) => {
+                const done = progress >= task.threshold
+                return (
+                  <div key={task.label} className="flex items-center gap-2.5">
+                    <div
+                      className="rounded-full shrink-0 transition-all"
+                      style={{ width: 8, height: 8, background: done ? task.channel : 'rgba(255,255,255,0.12)' }}
+                    />
+                    <span style={{ fontSize: 11, color: done ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.28)', transition: 'color 0.3s' }}>
+                      {task.label}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+          <div />
+        </div>
+      </div>
+    )
+  }
+
+  // ── Result ───────────────────────────────────────────────────────────────────
+  const metrics = [
+    { label: 'Redness Area', value: 18, unit: '% of ROI', color: '#ef4444', prev: 22, desc: 'Surface area showing elevated redness signal (cross-pol channel)' },
+    { label: 'Boundary Clarity', value: 74, unit: '/100', color: CHANNELS[1].color, prev: 68, desc: 'Sharpness of lesion boundaries detected in cross-polarized image' },
+    { label: 'Surface Shine Index', value: 61, unit: '/100', color: CHANNELS[2].color, prev: 65, desc: 'Specular reflectance from parallel-polarized image — higher = oilier' },
+    { label: 'Texture Roughness', value: 42, unit: '/100', color: '#f59e0b', prev: 47, desc: 'High-frequency surface variation from parallel-pol channel' },
+    { label: 'Repeatability Score', value: 88, unit: '/100', color: '#10b981', prev: 85, desc: 'Similarity of framing and exposure across sessions' },
+  ]
+
+  return (
+    <div className="flex flex-col size-full bg-[#f8f9fe]">
+      <StatusBar />
+      <div className="flex items-center px-5 pb-3 gap-3">
+        <button onClick={reset}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M15 18l-6-6 6-6" stroke="#1f2024" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <p style={{ fontSize: 15, fontWeight: 700, color: '#1f2024' }}>Optical Feature Report</p>
+        <span
+          className="ml-auto px-2 py-0.5 rounded-full"
+          style={{ fontSize: 10, fontWeight: 600, background: '#fef3c7', color: '#92400e' }}
+        >
+          Non-diagnostic
+        </span>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-4">
+        {/* Header score */}
+        <div
+          className="rounded-3xl p-5 flex items-center gap-4"
+          style={{ background: `linear-gradient(135deg, ${PRIMARY} 0%, #6b8ff8 100%)` }}
+        >
+          <div className="flex flex-col gap-1 flex-1">
+            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>Optical Scan Score</p>
+            <div className="flex items-baseline gap-1.5">
+              <p style={{ fontSize: 52, fontWeight: 900, color: 'white', lineHeight: 1 }}>87</p>
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>/100</p>
+            </div>
+            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>↑ +5 from last scan · Jul 20, 2026</p>
+          </div>
+          <div className="flex flex-col gap-2">
+            {CHANNELS.map((c) => (
+              <div key={c.id} className="flex items-center gap-1.5">
+                <div className="rounded-full" style={{ width: 6, height: 6, background: c.color }} />
+                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.7)' }}>{c.label.split('/')[0].trim()}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Metrics */}
+        <div className="bg-white rounded-2xl p-4 flex flex-col gap-3">
+          <p style={{ fontSize: 13, fontWeight: 700, color: '#1f2024' }}>Optical Feature Metrics</p>
+          {metrics.map((m) => {
+            const delta = m.value - m.prev
+            return (
+              <div key={m.label} className="flex flex-col gap-1.5 p-3 rounded-xl" style={{ background: '#f8f9fe' }}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: '#1f2024' }}>{m.label}</p>
+                    <p style={{ fontSize: 10, color: '#8f9098', marginTop: 1, lineHeight: '13px' }}>{m.desc}</p>
+                  </div>
+                  <div className="flex items-baseline gap-1 ml-3 shrink-0">
+                    <span style={{ fontSize: 20, fontWeight: 800, color: m.color }}>{m.value}</span>
+                    <span style={{ fontSize: 10, color: '#8f9098' }}>{m.unit}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 rounded-full overflow-hidden" style={{ height: 5, background: '#e8e9f1' }}>
+                    <div className="h-full rounded-full" style={{ width: `${m.value}%`, background: m.color }} />
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 10, fontWeight: 600,
+                      color: delta < 0 && m.label !== 'Redness Area' ? '#ef4444'
+                        : delta > 0 && m.label === 'Redness Area' ? '#ef4444'
+                        : '#10b981',
+                    }}
+                  >
+                    {delta > 0 ? '+' : ''}{delta}
+                  </span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Channel thumbnails */}
+        <div className="bg-white rounded-2xl p-4 flex flex-col gap-3">
+          <p style={{ fontSize: 13, fontWeight: 700, color: '#1f2024' }}>Captured Images</p>
+          <div className="grid grid-cols-4 gap-2">
+            {CHANNELS.map((c, i) => (
+              <div key={c.id} className="flex flex-col gap-1">
+                <div
+                  className="rounded-xl overflow-hidden"
+                  style={{ height: 64, background: '#f0f0f8' }}
+                >
+                  {uploads[i] && <img src={uploads[i]!} alt="" className="size-full object-cover" />}
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="rounded-full shrink-0" style={{ width: 5, height: 5, background: c.color }} />
+                  <span style={{ fontSize: 8, color: '#8f9098', lineHeight: '11px' }}>{c.label.split('/')[0].trim()}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Disclaimer */}
+        <div className="flex items-start gap-3 p-4 rounded-2xl" style={{ background: '#fffbeb', border: '1.5px solid #fcd34d' }}>
+          <span style={{ fontSize: 14 }}>⚠️</span>
+          <p style={{ fontSize: 10, color: '#78350f', lineHeight: '14px' }}>
+            This is an optical feature analysis only. It does not constitute a medical diagnosis. Consult a licensed dermatologist for clinical evaluation.
+          </p>
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            className="flex-1 flex items-center justify-center rounded-xl"
+            style={{ height: 48, background: 'white', border: `1.5px solid ${PRIMARY}` }}
+            onClick={reset}
+          >
+            <span style={{ fontSize: 12, fontWeight: 600, color: PRIMARY }}>New Scan</span>
+          </button>
+          <button
+            className="flex-1 flex items-center justify-center rounded-xl"
+            style={{ height: 48, background: PRIMARY }}
+            onClick={() => { reset(); nav('home') }}
+          >
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'white' }}>Save & Home</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── History ──────────────────────────────────────────────────────────────────
+const historyData = [
+  { date: 'Jul 20, 2026', score: 87, delta: +5, time: '10:30 AM' },
+  { date: 'Jul 13, 2026', score: 82, delta: +3, time: '9:15 AM' },
+  { date: 'Jul 6, 2026', score: 79, delta: -2, time: '11:00 AM' },
+  { date: 'Jun 29, 2026', score: 81, delta: +4, time: '8:45 AM' },
+  { date: 'Jun 22, 2026', score: 77, delta: +1, time: '10:00 AM' },
+  { date: 'Jun 15, 2026', score: 76, delta: -1, time: '9:30 AM' },
+]
+
+function HistoryScreen({ nav }: { nav: (s: Screen) => void }) {
+  const [tab, setTab] = useState<'list' | 'chart'>('list')
+
+  return (
+    <div className="flex flex-col size-full bg-[#f8f9fe]">
+      <StatusBar />
+      <div className="flex items-center justify-between px-5 pb-4">
+        <p style={{ fontSize: 18, fontWeight: 700, color: '#1f2024' }}>History</p>
+        <button onClick={() => nav('face-visited')}>
+          <span style={{ fontSize: 12, color: PRIMARY, fontWeight: 600 }}>Face Visited</span>
+        </button>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex mx-5 mb-4 p-1 rounded-xl gap-1" style={{ background: '#e8e9f1' }}>
+        {(['list', 'chart'] as const).map((t) => (
+          <button
+            key={t}
+            className="flex-1 flex items-center justify-center rounded-lg"
+            style={{ height: 32, background: tab === t ? 'white' : 'transparent' }}
+            onClick={() => setTab(t)}
+          >
+            <span style={{ fontSize: 12, fontWeight: 600, color: tab === t ? '#1f2024' : '#8f9098' }}>
+              {t === 'list' ? 'List View' : 'Chart View'}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-3">
+        {tab === 'list' ? (
+          historyData.map((item, i) => (
+            <div key={i} className="bg-white rounded-2xl p-4 flex items-center gap-4">
+              <div
+                className="flex items-center justify-center rounded-xl shrink-0"
+                style={{ width: 52, height: 52, background: '#f0f0f8' }}
+              >
+                <p style={{ fontSize: 22, fontWeight: 900, color: PRIMARY }}>{item.score}</p>
+              </div>
+              <div className="flex-1">
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#1f2024' }}>{item.date}</p>
+                <p style={{ fontSize: 11, color: '#8f9098', marginTop: 2 }}>{item.time}</p>
+              </div>
+              <div className="flex flex-col items-end gap-1">
+                <span
+                  style={{
+                    fontSize: 11, fontWeight: 600, paddingInline: 6, paddingBlock: 2,
+                    borderRadius: 8,
+                    color: item.delta > 0 ? '#16a34a' : '#dc2626',
+                    background: item.delta > 0 ? '#dcfce7' : '#fee2e2',
+                  }}
+                >
+                  {item.delta > 0 ? '+' : ''}{item.delta}
+                </span>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="bg-white rounded-2xl p-4 flex flex-col gap-4">
+            <p style={{ fontSize: 13, fontWeight: 600, color: '#1f2024' }}>Score Trend</p>
+            <div className="flex items-end gap-2" style={{ height: 140 }}>
+              {historyData.slice().reverse().map((item, i) => {
+                const h = ((item.score - 70) / 20) * 100
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                    <div
+                      className="rounded-t-lg w-full transition-all"
+                      style={{ height: `${h}%`, background: `linear-gradient(to top, ${PRIMARY}, #6b8ff8)` }}
+                    />
+                    <span style={{ fontSize: 9, color: '#8f9098' }}>{item.date.slice(4, 10)}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Face Visited ─────────────────────────────────────────────────────────────
+function FaceVisitedScreen({ nav }: { nav: (s: Screen) => void }) {
+  const visits = Array.from({ length: 12 }, (_, i) => ({
+    date: `Jul ${20 - i * 3}, 2026`,
+    score: 87 - i * 1.5,
+  }))
+
+  return (
+    <div className="flex flex-col size-full bg-[#f8f9fe]">
+      <StatusBar />
+      <div className="flex items-center px-5 pb-4 gap-3">
+        <button onClick={() => nav('history')}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M15 18l-6-6 6-6" stroke="#1f2024" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <p style={{ fontSize: 16, fontWeight: 700, color: '#1f2024' }}>Face Visited</p>
+      </div>
+      <div className="flex items-center justify-between px-5 mb-4">
+        <p style={{ fontSize: 13, color: '#8f9098' }}>Total scans: <strong style={{ color: '#1f2024' }}>12</strong></p>
+        <div
+          className="flex items-center justify-center rounded-xl px-3"
+          style={{ height: 32, background: '#e8e9f1' }}
+        >
+          <span style={{ fontSize: 11, color: '#1f2024' }}>Avg: 82.4</span>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto px-5 pb-6">
+        <div className="grid grid-cols-3 gap-3">
+          {visits.map((v, i) => (
+            <div
+              key={i}
+              className="flex flex-col items-center gap-2 p-3 rounded-2xl"
+              style={{ background: 'white' }}
+            >
+              <div
+                className="flex items-center justify-center rounded-full"
+                style={{ width: 60, height: 60, background: '#f0f0f8' }}
+              >
+                <svg width="28" height="36" viewBox="0 0 40 50" fill="none">
+                  <ellipse cx="20" cy="20" rx="14" ry="16" fill="#d4d6e0" />
+                  <ellipse cx="20" cy="45" rx="18" ry="10" fill="#d4d6e0" />
+                </svg>
+              </div>
+              <p style={{ fontSize: 16, fontWeight: 800, color: PRIMARY }}>{Math.round(v.score)}</p>
+              <p style={{ fontSize: 9, color: '#8f9098', textAlign: 'center' }}>{v.date}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Profile ──────────────────────────────────────────────────────────────────
+function ProfileScreen({ nav }: { nav: (s: Screen) => void }) {
+  return (
+    <div className="flex flex-col size-full bg-[#f8f9fe]">
+      <StatusBar />
+      <div className="flex items-center justify-between px-5 pb-4">
+        <p style={{ fontSize: 18, fontWeight: 700, color: '#1f2024' }}>Profile</p>
+        <button
+          className="flex items-center justify-center rounded-full size-9"
+          style={{ background: '#e8e9f1' }}
+          onClick={() => nav('settings')}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="3" stroke="#8f9098" strokeWidth="2" />
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="#8f9098" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-4">
+        {/* Avatar + stats */}
+        <div className="bg-white rounded-3xl p-5 flex flex-col items-center gap-3">
+          <div
+            className="flex items-center justify-center rounded-full"
+            style={{ width: 80, height: 80, background: '#e8e9f1' }}
+          >
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke="#8f9098" strokeWidth="2" strokeLinecap="round" />
+              <circle cx="12" cy="7" r="4" stroke="#8f9098" strokeWidth="2" />
+            </svg>
+          </div>
+          <div className="text-center">
+            <p style={{ fontSize: 16, fontWeight: 700, color: '#1f2024' }}>Ava Johnson</p>
+            <p style={{ fontSize: 12, color: '#8f9098', marginTop: 2 }}>ava.johnson@email.com</p>
+          </div>
+          <div className="flex gap-6 mt-1">
+            {[
+              { label: 'Scans', value: '12' },
+              { label: 'Avg Score', value: '82' },
+              { label: 'Best', value: '87' },
+            ].map((s) => (
+              <div key={s.label} className="flex flex-col items-center gap-1">
+                <p style={{ fontSize: 20, fontWeight: 800, color: PRIMARY }}>{s.value}</p>
+                <p style={{ fontSize: 10, color: '#8f9098' }}>{s.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Info fields — only name, email, age */}
+        <div className="bg-white rounded-2xl overflow-hidden">
+          {[
+            { label: 'Full Name', value: 'Ava Johnson' },
+            { label: 'Email', value: 'ava.johnson@email.com' },
+            { label: 'Age', value: '28' },
+          ].map((f, i, arr) => (
+            <div
+              key={f.label}
+              className="flex items-center justify-between px-4"
+              style={{ height: 52, borderBottom: i < arr.length - 1 ? '1px solid #f0f0f5' : 'none' }}
+            >
+              <span style={{ fontSize: 12, color: '#8f9098' }}>{f.label}</span>
+              <span style={{ fontSize: 13, fontWeight: 500, color: '#1f2024' }}>{f.value}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Recent activity */}
+        <div className="bg-white rounded-2xl p-4 flex flex-col gap-3">
+          <p style={{ fontSize: 14, fontWeight: 700, color: '#1f2024' }}>Recent Activity</p>
+          {historyData.slice(0, 3).map((item, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <div className="size-8 rounded-full flex items-center justify-center shrink-0" style={{ background: '#f0f0f8' }}>
+                <span style={{ fontSize: 14 }}>🧴</span>
+              </div>
+              <div className="flex-1">
+                <p style={{ fontSize: 12, fontWeight: 600, color: '#1f2024' }}>Skin Scan Completed</p>
+                <p style={{ fontSize: 10, color: '#8f9098' }}>{item.date} · Score: {item.score}</p>
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 600, color: item.delta > 0 ? '#16a34a' : '#dc2626' }}>
+                {item.delta > 0 ? '+' : ''}{item.delta}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Settings ─────────────────────────────────────────────────────────────────
+function SettingsScreen({ nav, navToLocation }: { nav: (s: Screen) => void; navToLocation: () => void }) {
+  const [notifs, setNotifs] = useState(true)
+  const [darkMode, setDarkMode] = useState(false)
+  const [autoScan, setAutoScan] = useState(false)
+  const [editName, setEditName] = useState('Ava Johnson')
+  const [editEmail, setEditEmail] = useState('ava.johnson@email.com')
+  const [editAge, setEditAge] = useState('28')
+  const [editing, setEditing] = useState(false)
+
+  const Toggle = ({ value, onToggle }: { value: boolean; onToggle: () => void }) => (
+    <button
+      onClick={onToggle}
+      className="flex items-center rounded-full transition-all"
+      style={{
+        width: 44, height: 24,
+        background: value ? PRIMARY : '#d1d5db',
+        padding: 3,
+        justifyContent: value ? 'flex-end' : 'flex-start',
+      }}
+    >
+      <div className="rounded-full bg-white" style={{ width: 18, height: 18 }} />
+    </button>
+  )
+
+  return (
+    <div className="flex flex-col size-full bg-[#f8f9fe]">
+      <StatusBar />
+      <div className="flex items-center px-5 pb-4 gap-3">
+        <button onClick={() => nav('profile')}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M15 18l-6-6 6-6" stroke="#1f2024" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <p style={{ fontSize: 16, fontWeight: 700, color: '#1f2024' }}>Settings</p>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-3">
+        {/* Edit Profile */}
+        <div className="bg-white rounded-2xl overflow-hidden">
+          <div className="flex items-center justify-between px-4 pt-3 pb-1">
+            <p style={{ fontSize: 11, fontWeight: 600, color: '#8f9098', letterSpacing: '0.8px', textTransform: 'uppercase' }}>Edit Profile</p>
+            <button onClick={() => setEditing(!editing)}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: PRIMARY }}>{editing ? 'Save' : 'Edit'}</span>
+            </button>
+          </div>
+          {[
+            { label: 'Full Name', value: editName, setter: setEditName },
+            { label: 'Email', value: editEmail, setter: setEditEmail },
+            { label: 'Age', value: editAge, setter: setEditAge },
+          ].map((f, i, arr) => (
+            <div
+              key={f.label}
+              className="flex items-center justify-between px-4"
+              style={{ height: 52, borderBottom: i < arr.length - 1 ? '1px solid #f0f0f5' : 'none' }}
+            >
+              <span style={{ fontSize: 12, color: '#8f9098', width: 70, flexShrink: 0 }}>{f.label}</span>
+              {editing ? (
+                <input
+                  className="flex-1 text-right outline-none bg-transparent"
+                  style={{ fontSize: 13, color: '#1f2024', fontWeight: 500 }}
+                  value={f.value}
+                  onChange={(e) => f.setter(e.target.value)}
+                />
+              ) : (
+                <span style={{ fontSize: 13, fontWeight: 500, color: '#1f2024' }}>{f.value}</span>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Preferences */}
+        <div className="bg-white rounded-2xl overflow-hidden">
+          <div className="px-4 pt-3 pb-1">
+            <p style={{ fontSize: 11, fontWeight: 600, color: '#8f9098', letterSpacing: '0.8px', textTransform: 'uppercase' }}>Preferences</p>
+          </div>
+          {[
+            { label: 'Notifications', toggle: notifs, onToggle: () => setNotifs(!notifs) },
+            { label: 'Dark Mode', toggle: darkMode, onToggle: () => setDarkMode(!darkMode) },
+            { label: 'Auto Scan Reminder', toggle: autoScan, onToggle: () => setAutoScan(!autoScan) },
+          ].map((item, i, arr) => (
+            <div
+              key={item.label}
+              className="flex items-center justify-between px-4"
+              style={{ height: 52, borderBottom: i < arr.length - 1 ? '1px solid #f0f0f5' : 'none' }}
+            >
+              <span style={{ fontSize: 13, color: '#1f2024' }}>{item.label}</span>
+              <Toggle value={item.toggle} onToggle={item.onToggle} />
+            </div>
+          ))}
+        </div>
+
+        {/* Location */}
+        <div className="bg-white rounded-2xl overflow-hidden">
+          <div className="px-4 pt-3 pb-1">
+            <p style={{ fontSize: 11, fontWeight: 600, color: '#8f9098', letterSpacing: '0.8px', textTransform: 'uppercase' }}>Location</p>
+          </div>
+          <button
+            className="w-full flex items-center justify-between px-4"
+            style={{ height: 52 }}
+            onClick={navToLocation}
+          >
+            <span style={{ fontSize: 13, color: '#1f2024' }}>Manage Location</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M9 18l6-6-6-6" stroke="#c5c6cc" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+
+        {/* About */}
+        <div className="bg-white rounded-2xl overflow-hidden">
+          <div className="px-4 pt-3 pb-1">
+            <p style={{ fontSize: 11, fontWeight: 600, color: '#8f9098', letterSpacing: '0.8px', textTransform: 'uppercase' }}>About</p>
+          </div>
+          {[
+            { label: 'Privacy Policy' },
+            { label: 'Terms of Service' },
+            { label: 'Help & Support' },
+          ].map((item, i, arr) => (
+            <button
+              key={item.label}
+              className="w-full flex items-center justify-between px-4"
+              style={{ height: 52, borderBottom: i < arr.length - 1 ? '1px solid #f0f0f5' : 'none' }}
+            >
+              <span style={{ fontSize: 13, color: '#1f2024' }}>{item.label}</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M9 18l6-6-6-6" stroke="#c5c6cc" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </button>
+          ))}
+        </div>
+
+        {/* Logout */}
+        <button
+          className="w-full flex items-center justify-center rounded-2xl"
+          style={{ height: 52, background: 'white', border: '1px solid #fee2e2' }}
+          onClick={() => nav('login')}
+        >
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#ef4444' }}>Log Out</span>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Location ─────────────────────────────────────────────────────────────────
+function LocationScreen({ nav, from = 'home' }: { nav: (s: Screen) => void; from?: Screen }) {
+  const [enabled, setEnabled] = useState(true)
+  const [selected, setSelected] = useState('New York, US')
+  const locations = ['New York, US', 'Los Angeles, US', 'London, UK', 'Tokyo, Japan', 'Sydney, Australia']
+
+  return (
+    <div className="flex flex-col size-full bg-[#f8f9fe]">
+      <StatusBar />
+      <div className="flex items-center px-5 pb-4 gap-3">
+        <button onClick={() => nav(from)}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M15 18l-6-6 6-6" stroke="#1f2024" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <p style={{ fontSize: 16, fontWeight: 700, color: '#1f2024' }}>Location</p>
+      </div>
+      <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-4">
+        <div className="bg-white rounded-2xl p-4 flex items-center justify-between">
+          <div className="flex flex-col gap-1">
+            <p style={{ fontSize: 13, fontWeight: 600, color: '#1f2024' }}>Location Services</p>
+            <p style={{ fontSize: 11, color: '#8f9098' }}>Enable to get local UV index data</p>
+          </div>
+          <button
+            className="flex items-center rounded-full transition-all"
+            style={{ width: 44, height: 24, background: enabled ? PRIMARY : '#d1d5db', padding: 3, justifyContent: enabled ? 'flex-end' : 'flex-start' }}
+            onClick={() => setEnabled(!enabled)}
+          >
+            <div className="rounded-full bg-white" style={{ width: 18, height: 18 }} />
+          </button>
+        </div>
+
+        <div className="bg-white rounded-2xl overflow-hidden">
+          <div className="px-4 pt-3 pb-1">
+            <p style={{ fontSize: 11, fontWeight: 600, color: '#8f9098', letterSpacing: '0.8px', textTransform: 'uppercase' }}>Select Location</p>
+          </div>
+          {locations.map((loc, i) => (
+            <button
+              key={loc}
+              className="w-full flex items-center justify-between px-4"
+              style={{ height: 52, borderBottom: i < locations.length - 1 ? '1px solid #f0f0f5' : 'none' }}
+              onClick={() => setSelected(loc)}
+            >
+              <div className="flex items-center gap-3">
+                <span style={{ fontSize: 16 }}>📍</span>
+                <span style={{ fontSize: 13, color: '#1f2024' }}>{loc}</span>
+              </div>
+              {selected === loc && (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M20 6L9 17l-5-5" stroke={PRIMARY} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* UV Info card */}
+        <div
+          className="rounded-2xl p-4 flex flex-col gap-2"
+          style={{ background: `linear-gradient(135deg, ${PRIMARY} 0%, #6b8ff8 100%)` }}
+        >
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>Current UV Index · {selected}</p>
+          <p style={{ fontSize: 32, fontWeight: 900, color: 'white', lineHeight: 1 }}>7.2</p>
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>High — Wear SPF 50+</p>
+        </div>
+
+        <button
+          className="w-full flex items-center justify-center rounded-xl"
+          style={{ height: 48, background: PRIMARY }}
+          onClick={() => nav(from)}
+        >
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>Save Location</span>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── App Shell ────────────────────────────────────────────────────────────────
+const MAIN_SCREENS: Screen[] = ['home', 'scan', 'history', 'face-visited', 'profile', 'settings', 'location']
+
+export default function App({ initialScreen }: { initialScreen?: Screen } = {}) {
+  const [screen, setScreen] = useState<Screen>(initialScreen ?? 'splash')
+  const [locationFrom, setLocationFrom] = useState<Screen>('home')
+
+  const nav = (s: Screen) => setScreen(s)
+  const navToLocation = (from: Screen) => { setLocationFrom(from); setScreen('location') }
+
+  const showNav = MAIN_SCREENS.includes(screen) && screen !== 'face-visited' && screen !== 'settings' && screen !== 'location' && !screen.startsWith('scan')
+
+  const renderScreen = () => {
+    if (screen === 'splash') return <SplashScreen onDone={() => setScreen('onboard1')} />
+    if (screen === 'onboard1' || screen === 'onboard2' || screen === 'onboard3') {
+      const idx = screen === 'onboard1' ? 0 : screen === 'onboard2' ? 1 : 2
+      return (
+        <OnboardingScreen
+          index={idx}
+          onNext={() => {
+            if (idx < 2) nav((['onboard1', 'onboard2', 'onboard3'] as Screen[])[idx + 1])
+            else nav('login')
+          }}
+          onSkip={() => nav('login')}
+        />
+      )
+    }
+    if (screen === 'login') return <LoginScreen nav={nav} />
+    if (screen === 'signup') return <SignUpScreen nav={nav} />
+    if (screen === 'home') return <HomeScreen nav={nav} navToLocation={() => navToLocation('home')} />
+    if (screen === 'scan' || screen === 'scan-prep') return <ScanScreen nav={nav} initialStep="prep" />
+    if (screen === 'scan-upload') return <ScanScreen nav={nav} initialStep="upload" />
+    if (screen === 'scan-quality') return <ScanScreen nav={nav} initialStep="quality" />
+    if (screen === 'scan-analyzing') return <ScanScreen nav={nav} initialStep="analyzing" />
+    if (screen === 'scan-result') return <ScanScreen nav={nav} initialStep="result" />
+    if (screen === 'history') return <HistoryScreen nav={nav} />
+    if (screen === 'face-visited') return <FaceVisitedScreen nav={nav} />
+    if (screen === 'profile') return <ProfileScreen nav={nav} />
+    if (screen === 'settings') return <SettingsScreen nav={nav} navToLocation={() => navToLocation('settings')} />
+    if (screen === 'location') return <LocationScreen nav={nav} from={locationFrom} />
+    return null
+  }
+
+  return (
+    <div className="app-stage">
+      {/* iPhone 15 Pro frame (collapses to full-screen on real phones — see index.css) */}
+      <div className="phone-frame">
+        {/* Dynamic Island */}
+        <div
+          className="phone-island absolute z-50 flex items-center justify-center"
+          style={{
+            top: 12, left: '50%', transform: 'translateX(-50%)',
+            width: 126, height: 37, borderRadius: 20,
+            background: '#0d0d0d',
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="rounded-full" style={{ width: 10, height: 10, background: '#1a1a1a' }} />
+            <div className="rounded-full" style={{ width: 14, height: 14, background: '#1a1a1a', border: '1px solid #2a2a2a' }} />
+          </div>
+        </div>
+
+        {/* Screen content */}
+        <div className="phone-screen flex flex-col size-full overflow-hidden">
+          <div className="flex flex-col flex-1 overflow-hidden relative">
+            {renderScreen()}
+          </div>
+          {showNav && (
+            <BottomNav
+              active={screen}
+              nav={nav}
+            />
+          )}
+        </div>
+
+        {/* Home indicator */}
+        <div
+          className="phone-home absolute bottom-2 left-1/2"
+          style={{ transform: 'translateX(-50%)', width: 134, height: 5, borderRadius: 3, background: '#d1d5db' }}
+        />
+      </div>
+    </div>
+  )
+}

@@ -1,0 +1,113 @@
+@import 'tailwindcss';
+
+/* ─── Theme ──────────────────────────────────────────────────────────────────
+   Figma Make emitted font families as "Family:Style" (e.g. font-['Inter:Medium']).
+   No such family exists, so every one of those silently fell back to the
+   browser's default sans — the single biggest source of drift between the
+   Figma preview and the web build. Families are now real names, weight comes
+   from the companion font-* utility, and Inter is self-hosted through
+   @fontsource-variable/inter (imported in main.tsx) rather than Google Fonts,
+   which is unreachable from mainland China. */
+@theme {
+  --font-sf: ui-sans-serif, -apple-system, 'SF Pro Text', 'SF Pro Display',
+             'Inter Variable', 'Inter', system-ui, sans-serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #1a1a2e;
+  font-family: 'Inter Variable', 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+/* Tailwind v4's preflight sets buttons to cursor:default. This prototype is
+   driven entirely by buttons, so put the pointer back. */
+button,
+[role='button'] {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+/* ─── Phone shell ────────────────────────────────────────────────────────────
+   Desktop: a centred 393x852 iPhone 15 Pro frame, matching the Figma artboard.
+   Real phones: the frame chrome disappears and the app fills the viewport. */
+.app-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 24px 0;
+  background: #1a1a2e;
+}
+
+.phone-frame {
+  position: relative;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  overflow: hidden;
+  width: 393px;
+  height: 852px;
+  border-radius: 54px;
+  background: #fff;
+  box-shadow:
+    0 0 0 10px #2a2a3e,
+    0 0 0 12px #3d3d52,
+    0 40px 80px rgb(0 0 0 / 0.6);
+}
+
+/* Clears the Dynamic Island. Becomes the notch inset on real hardware. */
+.phone-screen {
+  padding-top: 14px;
+}
+
+/* The prototype scrolls inside its own panes; a desktop scrollbar there would
+   read as a browser artefact rather than part of the app. */
+.phone-frame *::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.phone-frame * {
+  scrollbar-width: none;
+}
+
+@media (max-width: 520px) {
+  .app-stage {
+    align-items: stretch;
+    padding: 0;
+    background: #fff;
+  }
+
+  .phone-frame {
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    border-radius: 0;
+    box-shadow: none;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .phone-island,
+  .phone-home {
+    display: none !important;
+  }
+
+  .phone-screen {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
