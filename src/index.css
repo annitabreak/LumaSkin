@@ -70,9 +70,25 @@ button,
     0 40px 80px rgb(0 0 0 / 0.6);
 }
 
-/* Clears the Dynamic Island. Becomes the notch inset on real hardware. */
+/* The top inset that clears the Dynamic Island (the notch on real hardware)
+   now lives inside .status-bar rather than on the screen, so a screen whose
+   content is a full-bleed image can run edge to edge under it while the bar
+   floats on top. Screens that don't opt in are laid out identically to before. */
 .phone-screen {
-  padding-top: 14px;
+  --chrome-top: 14px;
+}
+
+.status-bar {
+  height: calc(var(--chrome-top) + 44px);
+  padding-top: calc(var(--chrome-top) + 12px);
+}
+
+.status-bar--overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 40;
 }
 
 /* The prototype scrolls inside its own panes; a desktop scrollbar there would
@@ -108,6 +124,6 @@ button,
   }
 
   .phone-screen {
-    padding-top: env(safe-area-inset-top, 0px);
+    --chrome-top: env(safe-area-inset-top, 0px);
   }
 }

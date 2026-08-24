@@ -28,10 +28,10 @@ type Screen =
 const PRIMARY = '#9598ea'
 
 // ─── Status Bar ──────────────────────────────────────────────────────────────
-function StatusBar({ light = false }: { light?: boolean }) {
+function StatusBar({ light = false, overlay = false }: { light?: boolean; overlay?: boolean }) {
   const color = light ? 'white' : '#1f2024'
   return (
-    <div className="flex items-center justify-between px-5 pt-3 pb-1 shrink-0" style={{ height: 44 }}>
+    <div className={`status-bar flex items-center justify-between px-5 pb-1 shrink-0${overlay ? ' status-bar--overlay' : ''}`}>
       <span style={{ fontSize: 15, fontWeight: 600, color, letterSpacing: -0.16 }}>9:41</span>
       <div className="flex items-center gap-1">
         <svg width="17" height="11" viewBox="0 0 17 11" fill="none">
@@ -172,8 +172,8 @@ const onboardingData: { image: string; overlay: string | null; dot: number; titl
 function OnboardingScreen({ index, onNext, onSkip }: { index: number; onNext: () => void; onSkip: () => void }) {
   const d = onboardingData[index]
   return (
-    <div className="flex flex-col size-full bg-white">
-      <StatusBar />
+    <div className="relative flex flex-col size-full bg-white">
+      <StatusBar overlay />
       <div className="flex-1 relative overflow-hidden">
         <img src={d.image} alt="" className="absolute inset-0 size-full object-cover" />
         {d.overlay && <img src={d.overlay} alt="" className="absolute inset-0 size-full object-cover" />}
@@ -225,8 +225,8 @@ function LoginScreen({ nav }: { nav: (s: Screen) => void }) {
   const [showPw, setShowPw] = useState(false)
 
   return (
-    <div className="flex flex-col size-full bg-white">
-      <StatusBar />
+    <div className="relative flex flex-col size-full bg-white">
+      <StatusBar overlay light />
       <div className="flex-1 relative overflow-hidden" style={{ maxHeight: 300 }}>
         <img src={imgHero} alt="" className="absolute inset-0 size-full object-cover" />
       </div>
