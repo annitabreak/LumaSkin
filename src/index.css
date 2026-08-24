@@ -126,4 +126,22 @@ button,
   .phone-screen {
     --chrome-top: env(safe-area-inset-top, 0px);
   }
+
+  /* The device already draws a clock, signal and battery, so the mock bar would
+     sit directly under the real one. Hide its contents but keep the element as
+     the safe-area spacer, so content still clears the notch. */
+  .status-bar {
+    height: var(--chrome-top);
+    padding: 0;
+  }
+
+  /* Full-bleed screens want a true 0 so the image reaches the top edge; the
+     rest get a small gap so headings don't butt against the browser chrome. */
+  .status-bar:not(.status-bar--overlay) {
+    height: max(var(--chrome-top), 8px);
+  }
+
+  .status-bar > * {
+    display: none;
+  }
 }

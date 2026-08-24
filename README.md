@@ -34,18 +34,17 @@ CLI alternative: `npx vercel --prod` from this folder.
 | **Build config** | `vite.config.ts` dropped four Figma-internal plugins (site.json head injection, HMR error-overlay replay, refresh-boundary fallback, `/.figma/make/kit.html`). `index.html` had `<!-- figma:title -->`-style placeholders that only Figma's build filled in; those are now real tags. |
 | **Images** | 6.4 MB of PNG → 385 KB of WebP at the same pixel dimensions (quality 92). Renamed to match your `asset/` folder: `hero-skin`, `onboarding-1/2/3`. |
 | **Dead weight** | Removed `.figma/`, `AGENTS.md`, `CLAUDE.md`, `.mise.toml`, `pnpm-lock.yaml`, a duplicate top-level `imports/`, an unused 200 KB `Frame94` component, and a blank 256×256 placeholder that sat invisible under onboarding screen 1. |
-| **Responsive** | `.app-stage` / `.phone-frame` / `.phone-island` / `.phone-screen` / `.phone-home` in `src/index.css` drive the desktop-frame ⇄ full-screen switch at a 520 px breakpoint, with `100dvh` and `env(safe-area-inset-*)` for iOS. |
+| **Responsive** | `.app-stage` / `.phone-frame` / `.phone-island` / `.phone-screen` / `.phone-home` / `.status-bar` in `src/index.css` drive the desktop-frame ⇄ full-screen switch at a 520 px breakpoint, with `100dvh` and `env(safe-area-inset-*)` for iOS. |
+| **Status bar** | The Dynamic-Island inset lives on `.status-bar` (via `--chrome-top`), not on the screen, so login and the onboarding screens can run their image to the top edge with the bar floating over it. On phones the mock bar's contents are hidden and it collapses to the safe-area inset. |
 | **Cursor** | Tailwind v4 changed the default button cursor to `default`. Restored to `pointer` — this prototype is nothing but buttons. |
 
 ## Things you may want to tweak
 
-- **The fake status bar.** Every screen draws its own `9:41 / 100%` bar. On a real
-  phone that sits just below the actual status bar. To hide it on phones only,
-  add to `src/index.css`:
-  ```css
-  @media (max-width: 520px) { .phone-screen > div > div > div:first-child { display: none } }
-  ```
-  (or give `StatusBar` a class and target that).
+- **The fake status bar** (`9:41 / 100%`) shows on desktop only. On phones its
+  contents are hidden — the device draws a real one — and the element collapses
+  to `env(safe-area-inset-top)` so content still clears the notch. To bring it
+  back on mobile, drop the `.status-bar > * { display: none }` block from the
+  media query in `src/index.css`.
 - **Breakpoint.** 520 px in `src/index.css` — raise it if you want tablets to go
   full-screen too.
 - **`src/FlowMap.tsx`** renders every screen on one board. Nothing imports it; wire
