@@ -1,5 +1,23 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import Frame54 from '@/imports/Frame54/index'
+import { deriveMetrics, measureAll, runQualityChecks } from '@/analysis'
+import type { ImageStats, QualityCheck } from '@/analysis'
+import {
+  METRIC_DEFS,
+  SEED_SCANS,
+  averageScore,
+  bestScore,
+  byNewest,
+  createScan,
+  formatDate,
+  formatShortDate,
+  formatTime,
+  latestScan,
+  previousScan,
+  scoreDelta,
+  scoreFromMetrics,
+} from '@/scans'
+import type { Scan } from '@/scans'
 import imgHero from '@/assets/img/hero-skin.webp'
 import imgOnboard1 from '@/assets/img/onboarding-1.webp'
 import imgOnboard2 from '@/assets/img/onboarding-2.webp'
@@ -18,9 +36,9 @@ type Screen =
   | 'scan-upload'
   | 'scan-quality'
   | 'scan-analyzing'
-  | 'scan-result'
+  // One report screen, reached both from a finished scan and from history.
+  | 'report'
   | 'history'
-  | 'face-visited'
   | 'profile'
   | 'settings'
   | 'location'
@@ -111,7 +129,7 @@ function BottomNav({ active, nav }: { active: Screen; nav: (s: Screen) => void }
       style={{ height: 83, borderColor: '#f0f0f0', paddingBottom: 20 }}
     >
       {tabs.map((t) => {
-        const isActive = active === t.screen || (t.screen === 'home' && active === 'location')
+        const isActive = active === t.screen
         return (
           <button
             key={t.screen}
@@ -219,10 +237,11 @@ function OnboardingScreen({ index, onNext, onSkip }: { index: number; onNext: ()
 }
 
 // ─── Login ────────────────────────────────────────────────────────────────────
-function LoginScreen({ nav }: { nav: (s: Screen) => void }) {
+function LoginScreen({ nav, onSignIn }: { nav: (s: Screen) => void; onSignIn: () => void }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
 
   return (
     <div className="relative flex flex-col size-full bg-white">
@@ -271,15 +290,17 @@ function LoginScreen({ nav }: { nav: (s: Screen) => void }) {
               </button>
             </div>
           </div>
-          <button>
-            <span style={{ fontSize: 12, fontWeight: 600, color: PRIMARY }}>Forgot password?</span>
+          <button onClick={() => setResetSent(true)}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: resetSent ? '#10b981' : PRIMARY }}>
+              {resetSent ? 'Reset link sent ✓' : 'Forgot password?'}
+            </span>
           </button>
         </div>
         <div className="flex flex-col gap-4">
           <button
             className="w-full flex items-center justify-center rounded-xl"
             style={{ height: 48, background: PRIMARY }}
-            onClick={() => nav('home')}
+            onClick={onSignIn}
           >
             <span style={{ fontSize: 12, fontWeight: 600, color: 'white' }}>Login</span>
           </button>
@@ -296,17 +317,17 @@ function LoginScreen({ nav }: { nav: (s: Screen) => void }) {
           <div style={{ flex: 1, height: 0.5, background: '#D4D6DD' }} />
         </div>
         <div className="flex items-center justify-center gap-3">
-          <button className="flex items-center justify-center rounded-full size-10" style={{ background: '#ed3241' }}>
+          <button className="flex items-center justify-center rounded-full size-10" style={{ background: '#ed3241' }} onClick={onSignIn}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
               <path d="M21.8 10.4H12v3.6h5.7c-.6 3-3.2 4.8-5.7 4.8-3.3 0-6-2.7-6-6s2.7-6 6-6c1.5 0 2.8.6 3.8 1.5l2.7-2.7C16.8 3.8 14.5 3 12 3 7 3 3 7 3 12s4 9 9 9c5 0 9-3.6 9-8.6 0-.7-.1-1.4-.2-2z" />
             </svg>
           </button>
-          <button className="flex items-center justify-center rounded-full size-10" style={{ background: '#1f2024' }}>
+          <button className="flex items-center justify-center rounded-full size-10" style={{ background: '#1f2024' }} onClick={onSignIn}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
               <path d="M12 2C6.5 2 2 6.5 2 12c0 4.4 2.9 8.2 6.8 9.5.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.6.3-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1.1.8-.2 1.7-.3 2.5-.3s1.7.1 2.5.3c2-1.4 2.8-1.1 2.8-1.1.5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.8-2.3 4.7-4.6 4.9.4.3.7 1 .7 2v2.9c0 .3.2.6.7.5 4-1.3 6.8-5.1 6.8-9.5C22 6.5 17.5 2 12 2z" />
             </svg>
           </button>
-          <button className="flex items-center justify-center rounded-full size-10" style={{ background: PRIMARY }}>
+          <button className="flex items-center justify-center rounded-full size-10" style={{ background: PRIMARY }} onClick={onSignIn}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
               <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.74l7.73-8.835L1.254 2.25H8.08l4.266 5.64z" />
             </svg>
@@ -318,83 +339,97 @@ function LoginScreen({ nav }: { nav: (s: Screen) => void }) {
 }
 
 // ─── Sign Up ──────────────────────────────────────────────────────────────────
-function SignUpScreen({ nav }: { nav: (s: Screen) => void }) {
-  const [name, setName] = useState('Luc')
+function SignUpScreen({ nav, onSignUp }: { nav: (s: Screen) => void; onSignUp: () => void }) {
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
+  const [focused, setFocused] = useState<string | null>(null)
+  const [touched, setTouched] = useState(false)
   const [showModal, setShowModal] = useState(false)
+
+  const fields = [
+    { id: 'name', label: 'First Name', value: name, setValue: setName, placeholder: 'Your name', type: 'text' },
+    { id: 'email', label: 'Email', value: email, setValue: setEmail, placeholder: 'name@email.com', type: 'email' },
+    { id: 'password', label: 'Password', value: password, setValue: setPassword, placeholder: 'Create a password', type: 'password' },
+    { id: 'confirm', label: 'Confirm Password', value: confirm, setValue: setConfirm, placeholder: 'Confirm password', type: 'password' },
+  ]
+
+  const emailLooksValid = /\S+@\S+\.\S+/.test(email)
+  const passwordLongEnough = password.length >= 6
+  const passwordsMatch = password.length > 0 && password === confirm
+  const problems: Record<string, string | null> = {
+    name: name.trim() ? null : 'Enter your first name',
+    email: emailLooksValid ? null : 'Enter a valid email address',
+    password: passwordLongEnough ? null : 'Use at least 6 characters',
+    confirm: passwordsMatch ? null : 'Passwords do not match',
+  }
+  const canSubmit = Object.values(problems).every((v) => v === null)
+
+  const submit = () => {
+    setTouched(true)
+    if (canSubmit) setShowModal(true)
+  }
 
   return (
     <div className="flex flex-col size-full bg-white">
       <StatusBar />
-      <div className="flex flex-col gap-4 px-6 pt-6 pb-10 flex-1 overflow-y-auto">
+      <div className="flex items-center px-6 pb-2 gap-3">
+        <button onClick={() => nav('login')}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M15 18l-6-6 6-6" stroke="#1f2024" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </div>
+      <div className="flex flex-col gap-4 px-6 pt-2 pb-6 flex-1 overflow-y-auto">
         <div className="flex flex-col gap-2">
-          <p style={{ fontSize: 16, fontWeight: 800, color: '#1f2024', letterSpacing: 0.08 }}>Sign up</p>
+          <p style={{ fontSize: 20, fontWeight: 800, color: '#1f2024', letterSpacing: 0.08 }}>Sign up</p>
           <p style={{ fontSize: 12, color: '#71727a', lineHeight: '16px' }}>Create an account to get started</p>
         </div>
-        {/* Name */}
-        {[
-          { label: 'First Name', value: name, setValue: setName, active: true, placeholder: 'Your name' },
-          { label: 'Email', value: email, setValue: setEmail, active: false, placeholder: 'name@email.com' },
-          { label: 'Password', value: password, setValue: setPassword, active: false, placeholder: 'Create a password' },
-          { label: 'Confirm Password', value: confirm, setValue: setConfirm, active: false, placeholder: 'Confirm password' },
-        ].map((field) => (
-          <div key={field.label} className="flex flex-col gap-2">
-            <div
-              className="flex items-center px-4 rounded-xl"
-              style={{
-                height: 48,
-                border: field.active ? `1.5px solid ${PRIMARY}` : '1px solid #c5c6cc',
-              }}
-            >
-              <input
-                className="flex-1 outline-none bg-transparent"
-                style={{ fontSize: 14, color: '#1f2024' }}
-                placeholder={field.placeholder}
-                value={field.value}
-                onChange={(e) => field.setValue(e.target.value)}
-              />
-            </div>
-          </div>
-        ))}
 
-        {/* Keyboard placeholder */}
-        <div
-          className="rounded-xl overflow-hidden shrink-0"
-          style={{ background: '#d1d5db' }}
+        {fields.map((field) => {
+          // The mock hard-coded the first field as focused and drew a fake
+          // keyboard below. Focus is now real and the device supplies the keyboard.
+          const isFocused = focused === field.id
+          const error = touched ? problems[field.id] : null
+          const border = error ? '#ef4444' : isFocused ? PRIMARY : '#c5c6cc'
+          return (
+            <div key={field.id} className="flex flex-col gap-1.5">
+              <div
+                className="flex items-center px-4 rounded-xl"
+                style={{ height: 48, border: `${isFocused || error ? 1.5 : 1}px solid ${border}` }}
+              >
+                <input
+                  className="flex-1 outline-none bg-transparent"
+                  style={{ fontSize: 14, color: '#1f2024' }}
+                  type={field.type}
+                  placeholder={field.placeholder}
+                  value={field.value}
+                  autoComplete={field.id === 'name' ? 'given-name' : field.id === 'email' ? 'email' : 'new-password'}
+                  onFocus={() => setFocused(field.id)}
+                  onBlur={() => setFocused(null)}
+                  onChange={(e) => field.setValue(e.target.value)}
+                />
+              </div>
+              {error && <p style={{ fontSize: 11, color: '#ef4444' }}>{error}</p>}
+            </div>
+          )
+        })}
+
+        <button
+          className="w-full flex items-center justify-center rounded-xl mt-2 transition-opacity"
+          style={{ height: 48, background: PRIMARY, opacity: touched && !canSubmit ? 0.6 : 1 }}
+          onClick={submit}
         >
-          <div className="grid grid-cols-10 gap-1 p-2">
-            {'QWERTYUIOP'.split('').map((k) => (
-              <div key={k} className="flex items-center justify-center rounded bg-white" style={{ height: 36, fontSize: 12, fontWeight: 500 }}>
-                {k}
-              </div>
-            ))}
-            {'ASDFGHJKL'.split('').map((k) => (
-              <div key={k} className="flex items-center justify-center rounded bg-white col-start-auto" style={{ height: 36, fontSize: 12, fontWeight: 500, gridColumn: 'span 1' }}>
-                {k}
-              </div>
-            ))}
-          </div>
-          <div className="flex gap-2 px-2 pb-2">
-            {['⇧', ...('ZXCVBNM'.split('')), '⌫'].map((k) => (
-              <div key={k} className="flex-1 flex items-center justify-center rounded bg-white" style={{ height: 36, fontSize: k === '⇧' || k === '⌫' ? 14 : 12 }}>
-                {k}
-              </div>
-            ))}
-          </div>
-          <div className="flex gap-2 px-2 pb-3">
-            <div className="flex items-center justify-center rounded bg-white" style={{ height: 36, width: 70, fontSize: 11 }}>123</div>
-            <div className="flex-1 flex items-center justify-center rounded bg-white" style={{ height: 36, fontSize: 11 }}>space</div>
-            <button
-              className="flex items-center justify-center rounded"
-              style={{ height: 36, width: 70, background: PRIMARY, fontSize: 11, color: 'white', fontWeight: 600 }}
-              onClick={() => setShowModal(true)}
-            >
-              done
-            </button>
-          </div>
-        </div>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>Create Account</span>
+        </button>
+
+        <p className="text-center" style={{ fontSize: 12, color: '#71727a' }}>
+          Already have an account?{' '}
+          <button onClick={() => nav('login')}>
+            <span style={{ fontWeight: 600, color: PRIMARY }}>Log in</span>
+          </button>
+        </p>
       </div>
 
       {showModal && (
@@ -407,15 +442,17 @@ function SignUpScreen({ nav }: { nav: (s: Screen) => void }) {
                   <path d="M20 6L9 17l-5-5" stroke={PRIMARY} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
-              <p style={{ fontSize: 18, fontWeight: 700, color: '#1f2024' }}>Save confirmation</p>
-              <p style={{ fontSize: 13, color: '#71727a', lineHeight: '18px' }}>Your account has been created successfully. You can now log in.</p>
+              <p style={{ fontSize: 18, fontWeight: 700, color: '#1f2024' }}>You&apos;re all set</p>
+              <p style={{ fontSize: 13, color: '#71727a', lineHeight: '18px' }}>
+                Account created. Your first scan will set the baseline every later scan is measured against.
+              </p>
             </div>
             <button
               className="w-full flex items-center justify-center rounded-xl"
               style={{ height: 48, background: PRIMARY }}
-              onClick={() => nav('login')}
+              onClick={onSignUp}
             >
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>Continue to Login</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>Get started</span>
             </button>
           </div>
         </div>
@@ -425,15 +462,26 @@ function SignUpScreen({ nav }: { nav: (s: Screen) => void }) {
 }
 
 // ─── Home / Dashboard ─────────────────────────────────────────────────────────
-const skinMetrics = [
-  { label: 'Moisture', value: 78, color: '#9598ea', icon: '💧' },
-  { label: 'Texture', value: 85, color: '#6ee7b7', icon: '✨' },
-  { label: 'Redness', value: 62, color: '#fca5a5', icon: '🔴' },
-  { label: 'Pores', value: 71, color: '#fcd34d', icon: '⭕' },
-]
-
-function HomeScreen({ nav, navToLocation }: { nav: (s: Screen) => void; navToLocation: () => void }) {
-  const score = 82
+function HomeScreen({
+  nav,
+  navToLocation,
+  scans,
+  onOpenReport,
+}: {
+  nav: (s: Screen) => void
+  navToLocation: () => void
+  scans: Scan[]
+  onOpenReport: (id: string) => void
+}) {
+  // Home used to show four beauty-app metrics (Moisture, Pores, UV Protection,
+  // Anti-aging) that three photographs cannot measure, all frozen at constants.
+  // It now shows what the optical module actually produced, from the same store
+  // the report and history read.
+  const latest = latestScan(scans)
+  const delta = latest ? scoreDelta(scans, latest) : null
+  const prev = latest ? previousScan(scans, latest.id) : null
+  const score = latest ? scoreFromMetrics(latest.metrics) : null
+  const trend = useMemo(() => byNewest(scans).slice(0, 6).reverse(), [scans])
 
   return (
     <div className="flex flex-col size-full bg-[#f8f9fe]">
@@ -469,97 +517,155 @@ function HomeScreen({ nav, navToLocation }: { nav: (s: Screen) => void; navToLoc
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-4">
-        {/* Score Card */}
-        <div
-          className="rounded-3xl p-5 flex items-center gap-4"
-          style={{ background: `linear-gradient(135deg, ${PRIMARY} 0%, #6b8ff8 100%)` }}
-        >
-          <div className="flex flex-col gap-1 flex-1">
-            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)' }}>Discovering Level</p>
-            <div className="flex items-baseline gap-1">
-              <p style={{ fontSize: 48, fontWeight: 900, color: 'white', lineHeight: 1 }}>{score}</p>
-              <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>/100</p>
-            </div>
-            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>Bravo! You're doing great</p>
+        {!latest ? (
+          /* First run: no fabricated history, just the one action that matters. */
+          <div
+            className="rounded-3xl p-6 flex flex-col gap-3"
+            style={{ background: `linear-gradient(135deg, ${PRIMARY} 0%, #6b8ff8 100%)` }}
+          >
+            <p style={{ fontSize: 17, fontWeight: 800, color: 'white' }}>Set your baseline</p>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', lineHeight: '17px' }}>
+              Your first scan is the reference every later scan is compared against. It takes three
+              photographs through the clip-on module — about two minutes.
+            </p>
             <button
-              className="mt-3 flex items-center justify-center rounded-xl"
-              style={{ height: 36, background: 'rgba(255,255,255,0.2)', width: 120 }}
+              className="flex items-center justify-center rounded-xl mt-2"
+              style={{ height: 44, background: 'white' }}
               onClick={() => nav('scan')}
             >
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'white' }}>Progress Score →</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: PRIMARY }}>Start first scan →</span>
             </button>
           </div>
-          <div
-            className="flex items-center justify-center rounded-full shrink-0"
-            style={{ width: 80, height: 80, background: 'rgba(255,255,255,0.15)' }}
-          >
+        ) : (
+          <>
+            {/* Latest score — the most recent reading, not the running average */}
             <div
-              className="flex items-center justify-center rounded-full"
-              style={{ width: 60, height: 60, background: 'rgba(255,255,255,0.2)' }}
+              className="rounded-3xl p-5 flex items-center gap-4"
+              style={{ background: `linear-gradient(135deg, ${PRIMARY} 0%, #6b8ff8 100%)` }}
             >
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
-                <circle cx="12" cy="8" r="4" />
-                <path d="M6 20v-2a4 4 0 014-4h4a4 4 0 014 4v2" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        {/* Healthy Check */}
-        <div className="bg-white rounded-2xl p-4 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <p style={{ fontSize: 14, fontWeight: 700, color: '#1f2024' }}>Healthy check</p>
-            <button onClick={() => nav('scan')}>
-              <span style={{ fontSize: 11, color: PRIMARY, fontWeight: 600 }}>Scan now</span>
-            </button>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {skinMetrics.map((m) => (
-              <div key={m.label} className="flex flex-col gap-2 p-3 rounded-xl" style={{ background: '#f8f9fe' }}>
-                <div className="flex items-center justify-between">
-                  <span style={{ fontSize: 11, color: '#8f9098' }}>{m.label}</span>
-                  <span style={{ fontSize: 10 }}>{m.icon}</span>
+              <div className="flex flex-col gap-1 flex-1">
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)' }}>Latest Optical Score</p>
+                <div className="flex items-baseline gap-1">
+                  <p style={{ fontSize: 48, fontWeight: 900, color: 'white', lineHeight: 1 }}>{score}</p>
+                  <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>/100</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <p style={{ fontSize: 20, fontWeight: 800, color: '#1f2024' }}>{m.value}</p>
-                  <p style={{ fontSize: 10, color: '#8f9098' }}>/ 100</p>
-                </div>
-                <div className="rounded-full overflow-hidden" style={{ height: 4, background: '#e8e9f1' }}>
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>
+                  {delta === null
+                    ? `Baseline · ${formatDate(latest.takenAt)}`
+                    : `${delta >= 0 ? '↑ +' : '↓ '}${delta} since last scan · ${formatDate(latest.takenAt)}`}
+                </p>
+                <button
+                  className="mt-3 flex items-center justify-center rounded-xl"
+                  style={{ height: 36, background: 'rgba(255,255,255,0.2)', width: 120 }}
+                  onClick={() => onOpenReport(latest.id)}
+                >
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'white' }}>View report →</span>
+                </button>
+              </div>
+              <div
+                className="flex items-center justify-center rounded-full shrink-0 overflow-hidden"
+                style={{ width: 80, height: 80, background: 'rgba(255,255,255,0.15)' }}
+              >
+                {latest.thumbs[0] ? (
+                  <img src={latest.thumbs[0]} alt="" className="size-full object-cover" />
+                ) : (
                   <div
-                    className="h-full rounded-full transition-all"
-                    style={{ width: `${m.value}%`, background: m.color }}
-                  />
-                </div>
+                    className="flex items-center justify-center rounded-full"
+                    style={{ width: 60, height: 60, background: 'rgba(255,255,255,0.2)' }}
+                  >
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
+                      <circle cx="12" cy="8" r="4" />
+                      <path d="M6 20v-2a4 4 0 014-4h4a4 4 0 014 4v2" />
+                    </svg>
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Skin score breakdown */}
-        <div className="bg-white rounded-2xl p-4 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <p style={{ fontSize: 14, fontWeight: 700, color: '#1f2024' }}>Marking test</p>
-            <span style={{ fontSize: 11, color: '#8f9098' }}>This week</span>
-          </div>
-          {[
-            { label: 'Skin Health', value: 88, color: PRIMARY },
-            { label: 'UV Protection', value: 55, color: '#f59e0b' },
-            { label: 'Hydration', value: 72, color: '#6ee7b7' },
-            { label: 'Anti-aging', value: 64, color: '#f87171' },
-          ].map((item) => (
-            <div key={item.label} className="flex items-center gap-3">
-              <span style={{ fontSize: 11, color: '#8f9098', width: 90, flexShrink: 0 }}>{item.label}</span>
-              <div className="flex-1 rounded-full overflow-hidden" style={{ height: 6, background: '#f0f0f5' }}>
-                <div
-                  className="h-full rounded-full"
-                  style={{ width: `${item.value}%`, background: item.color }}
-                />
-              </div>
-              <span style={{ fontSize: 11, fontWeight: 600, color: '#1f2024', width: 28, textAlign: 'right' }}>{item.value}</span>
             </div>
-          ))}
-        </div>
 
+            {/* Latest measurements */}
+            <div className="bg-white rounded-2xl p-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <p style={{ fontSize: 14, fontWeight: 700, color: '#1f2024' }}>Latest measurements</p>
+                <button onClick={() => nav('scan')}>
+                  <span style={{ fontSize: 11, color: PRIMARY, fontWeight: 600 }}>Scan now</span>
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {METRIC_DEFS.slice(0, 4).map((def) => {
+                  const value = latest.metrics[def.key]
+                  const before = prev ? prev.metrics[def.key] : null
+                  const change = before === null ? null : value - before
+                  const improved = change === null
+                    ? null
+                    : def.betterWhen === 'higher' ? change >= 0 : change <= 0
+                  return (
+                    <div key={def.key} className="flex flex-col gap-2 p-3 rounded-xl" style={{ background: '#f8f9fe' }}>
+                      <div className="flex items-center justify-between">
+                        <span style={{ fontSize: 11, color: '#8f9098' }}>{def.label}</span>
+                        {change !== null && (
+                          <span style={{ fontSize: 10, fontWeight: 700, color: improved ? '#10b981' : '#ef4444' }}>
+                            {change > 0 ? '+' : ''}{change}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-baseline gap-1">
+                        <p style={{ fontSize: 20, fontWeight: 800, color: '#1f2024' }}>{value}</p>
+                        <p style={{ fontSize: 10, color: '#8f9098' }}>{def.unit}</p>
+                      </div>
+                      <div className="rounded-full overflow-hidden" style={{ height: 4, background: '#e8e9f1' }}>
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{ width: `${value}%`, background: def.color }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Trend */}
+            <div className="bg-white rounded-2xl p-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <p style={{ fontSize: 14, fontWeight: 700, color: '#1f2024' }}>Score trend</p>
+                <button onClick={() => nav('history')}>
+                  <span style={{ fontSize: 11, color: PRIMARY, fontWeight: 600 }}>All scans</span>
+                </button>
+              </div>
+              {trend.length < 2 ? (
+                <p style={{ fontSize: 11, color: '#8f9098', lineHeight: '15px' }}>
+                  One more scan and a trend line appears here.
+                </p>
+              ) : (() => {
+                const scores = trend.map((sc) => scoreFromMetrics(sc.metrics))
+                const lo = Math.max(0, Math.min(...scores) - 6)
+                const hi = Math.min(100, Math.max(...scores) + 6)
+                const span = Math.max(1, hi - lo)
+                return (
+                  <div className="flex items-end gap-2" style={{ height: 90 }}>
+                    {trend.map((sc, i) => (
+                      <button
+                        key={sc.id}
+                        className="flex-1 flex flex-col items-center gap-1 h-full justify-end"
+                        onClick={() => onOpenReport(sc.id)}
+                      >
+                        <span style={{ fontSize: 9, fontWeight: 700, color: '#1f2024' }}>{scores[i]}</span>
+                        <div
+                          className="rounded-t-lg w-full transition-all"
+                          style={{
+                            height: `${Math.max(4, ((scores[i] - lo) / span) * 100)}%`,
+                            background: i === trend.length - 1 ? PRIMARY : '#c7cdf5',
+                          }}
+                        />
+                        <span style={{ fontSize: 9, color: '#8f9098' }}>{formatShortDate(sc.takenAt)}</span>
+                      </button>
+                    ))}
+                  </div>
+                )
+              })()}
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
@@ -641,48 +747,113 @@ const PREP_STEPS = [
   { icon: '📏', title: 'Set distance', desc: 'Hold the phone 15–20 cm from the skin. Keep the framing consistent across all three shots.' },
 ]
 
-function QualityBadge({ pass }: { pass: boolean }) {
+function QualityBadge({ pass, manual = false }: { pass: boolean; manual?: boolean }) {
+  // A manual check that is not yet answered is pending, not failed — showing it
+  // in red would read as "your photo is bad" when nothing is wrong with it.
+  const tone = pass
+    ? { bg: '#d1fae5', dot: '#10b981', text: '#065f46', label: 'Pass' }
+    : manual
+      ? { bg: '#eef0ff', dot: PRIMARY, text: '#3f3f8f', label: 'Confirm' }
+      : { bg: '#fee2e2', dot: '#ef4444', text: '#991b1b', label: 'Review' }
   return (
-    <div
-      className="flex items-center gap-1 px-2 py-0.5 rounded-full"
-      style={{ background: pass ? '#d1fae5' : '#fee2e2' }}
-    >
-      <div className="rounded-full" style={{ width: 6, height: 6, background: pass ? '#10b981' : '#ef4444' }} />
-      <span style={{ fontSize: 10, fontWeight: 600, color: pass ? '#065f46' : '#991b1b' }}>
-        {pass ? 'Pass' : 'Review'}
-      </span>
+    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full shrink-0" style={{ background: tone.bg }}>
+      <div className="rounded-full" style={{ width: 6, height: 6, background: tone.dot }} />
+      <span style={{ fontSize: 10, fontWeight: 600, color: tone.text }}>{tone.label}</span>
     </div>
   )
 }
 
-function ScanScreen({ nav, initialStep = 'prep' }: { nav: (s: Screen) => void; initialStep?: ScanStep }) {
+function ScanScreen({
+  nav,
+  initialStep = 'prep',
+  onStepChange,
+  onComplete,
+}: {
+  nav: (s: Screen) => void
+  initialStep?: ScanStep
+  onStepChange?: (step: ScanStep) => void
+  onComplete: (scan: Scan) => void
+}) {
   const [step, setStep] = useState<ScanStep>(initialStep)
   const [prepChecked, setPrepChecked] = useState<boolean[]>(Array(PREP_STEPS.length).fill(false))
-  const [uploads, setUploads] = useState<(string | null)[]>(Array(3).fill(null))
+  const [uploads, setUploads] = useState<(string | null)[]>(Array(CHANNELS.length).fill(null))
   const [activeChannel, setActiveChannel] = useState(0)
   const [progress, setProgress] = useState(0)
+  const [stats, setStats] = useState<ImageStats[] | null>(null)
+  const [measuring, setMeasuring] = useState(false)
+  const [measureError, setMeasureError] = useState<string | null>(null)
+  const [cardConfirmed, setCardConfirmed] = useState(false)
   const animRef = useRef<number>(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  /** Object URLs this screen owns, so they can be released if it unmounts. */
+  const ownedUrls = useRef<string[]>([])
+
+  // The shell needs the current step to decide whether the tab bar is safe to show.
+  useEffect(() => { onStepChange?.(step) }, [step, onStepChange])
+
+  useEffect(() => () => {
+    cancelAnimationFrame(animRef.current)
+    ownedUrls.current.forEach((u) => URL.revokeObjectURL(u))
+  }, [])
 
   const allPrepDone = prepChecked.every(Boolean)
   const allUploaded = uploads.every(Boolean)
+  const uploadedCount = uploads.filter(Boolean).length
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     const url = URL.createObjectURL(file)
+    ownedUrls.current.push(url)
     setUploads((prev) => {
       const next = [...prev]
+      const replaced = next[activeChannel]
+      if (replaced) {
+        URL.revokeObjectURL(replaced)
+        ownedUrls.current = ownedUrls.current.filter((u) => u !== replaced)
+      }
       next[activeChannel] = url
       return next
     })
-    // Auto-advance to next empty channel
+    // Re-measuring is driven off `uploads`, so drop the stale reading.
+    setStats(null)
     const nextEmpty = uploads.findIndex((u, i) => i > activeChannel && i < CHANNELS.length && !u)
     if (nextEmpty !== -1) setActiveChannel(nextEmpty)
     e.target.value = ''
   }
 
+  // Read the pixels once all channels are in and the user reaches the gate.
+  useEffect(() => {
+    if (step !== 'quality') return
+    const srcs = uploads.filter(Boolean) as string[]
+    if (srcs.length !== CHANNELS.length) return
+    let cancelled = false
+    setMeasuring(true)
+    setMeasureError(null)
+    measureAll(srcs)
+      .then((result) => { if (!cancelled) { setStats(result); setMeasuring(false) } })
+      .catch((err: Error) => { if (!cancelled) { setMeasureError(err.message); setMeasuring(false) } })
+    return () => { cancelled = true }
+  }, [step, uploads])
+
+  const checks: QualityCheck[] = stats
+    ? [
+      ...runQualityChecks(stats, CHANNELS.length),
+      {
+        key: 'card',
+        label: 'Colour reference card',
+        detail: cardConfirmed
+          ? 'Confirmed in frame for all three channels'
+          : 'Tap to confirm the grey card is in frame — this is the one check pixels cannot make for you',
+        pass: cardConfirmed,
+        manual: true,
+      },
+    ]
+    : []
+  const canAnalyze = checks.length > 0 && checks.every((c) => c.pass)
+
   const startAnalysis = () => {
+    if (!stats || !canAnalyze) return
     setStep('analyzing')
     let p = 0
     const tick = () => {
@@ -691,20 +862,15 @@ function ScanScreen({ nav, initialStep = 'prep' }: { nav: (s: Screen) => void; i
       if (p < 100) {
         animRef.current = requestAnimationFrame(tick)
       } else {
-        setTimeout(() => setStep('result'), 500)
+        setTimeout(() => {
+          const scan = createScan(deriveMetrics(stats), uploads.filter(Boolean) as string[])
+          // The saved scan owns these URLs now, so this screen must not revoke them.
+          ownedUrls.current = []
+          onComplete(scan)
+        }, 400)
       }
     }
     animRef.current = requestAnimationFrame(tick)
-  }
-
-  useEffect(() => () => cancelAnimationFrame(animRef.current), [])
-
-  const reset = () => {
-    setStep('prep')
-    setPrepChecked(Array(PREP_STEPS.length).fill(false))
-    setUploads(Array(4).fill(null))
-    setActiveChannel(0)
-    setProgress(0)
   }
 
   // ── Prep ────────────────────────────────────────────────────────────────────
@@ -803,7 +969,6 @@ function ScanScreen({ nav, initialStep = 'prep' }: { nav: (s: Screen) => void; i
   if (step === 'upload') {
     const safeChannel = Math.min(activeChannel, CHANNELS.length - 1)
     const ch = CHANNELS[safeChannel]
-    const uploadedCount = uploads.filter(Boolean).length
 
     return (
       <div className="flex flex-col size-full bg-[#f8f9fe]">
@@ -816,7 +981,7 @@ function ScanScreen({ nav, initialStep = 'prep' }: { nav: (s: Screen) => void; i
           </button>
           <div className="flex-1">
             <p style={{ fontSize: 15, fontWeight: 700, color: '#1f2024' }}>Upload Images</p>
-            <p style={{ fontSize: 10, color: '#8f9098' }}>{uploadedCount} of 3 channels uploaded</p>
+            <p style={{ fontSize: 10, color: '#8f9098' }}>{uploadedCount} of {CHANNELS.length} channels uploaded</p>
           </div>
           <div className="flex gap-1">
             {(['prep','upload','quality','result'] as const).map((s, i) => (
@@ -988,7 +1153,7 @@ function ScanScreen({ nav, initialStep = 'prep' }: { nav: (s: Screen) => void; i
             onClick={() => setStep('quality')}
           >
             <span style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>
-              {allUploaded ? 'Continue to Quality Check →' : `${3 - uploadedCount} image${3 - uploadedCount > 1 ? 's' : ''} remaining`}
+              {allUploaded ? 'Continue to Quality Check →' : `${CHANNELS.length - uploadedCount} image${CHANNELS.length - uploadedCount > 1 ? 's' : ''} remaining`}
             </span>
           </button>
         </div>
@@ -998,13 +1163,6 @@ function ScanScreen({ nav, initialStep = 'prep' }: { nav: (s: Screen) => void; i
 
   // ── Quality Check ────────────────────────────────────────────────────────────
   if (step === 'quality') {
-    const checks = [
-      { label: 'Sharpness', detail: 'All 3 images pass focus threshold', pass: true },
-      { label: 'Alignment', detail: 'Skin region detected in consistent position', pass: true },
-      { label: 'Exposure', detail: 'Brightness within acceptable range', pass: true },
-      { label: 'Colour card visible', detail: 'Reference card detected in all 3 images', pass: true },
-      { label: 'Channel completeness', detail: 'All 3 optical channels present', pass: true },
-    ]
     return (
       <div className="flex flex-col size-full bg-[#f8f9fe]">
         <StatusBar />
@@ -1016,7 +1174,9 @@ function ScanScreen({ nav, initialStep = 'prep' }: { nav: (s: Screen) => void; i
           </button>
           <div className="flex-1">
             <p style={{ fontSize: 15, fontWeight: 700, color: '#1f2024' }}>Image Quality Check</p>
-            <p style={{ fontSize: 10, color: '#8f9098' }}>Review before analysis</p>
+            <p style={{ fontSize: 10, color: '#8f9098' }}>
+              {measuring ? 'Reading your images…' : canAnalyze ? 'All checks passed' : 'Review before analysis'}
+            </p>
           </div>
           <div className="flex gap-1">
             {(['prep','upload','quality','result'] as const).map((s, i) => (
@@ -1046,25 +1206,65 @@ function ScanScreen({ nav, initialStep = 'prep' }: { nav: (s: Screen) => void; i
             ))}
           </div>
 
-          {/* Quality checks */}
+          {/* Quality checks — measured from the uploaded pixels, not hard-coded */}
           <div className="bg-white rounded-2xl overflow-hidden">
-            <div className="px-4 pt-4 pb-2">
+            <div className="px-4 pt-4 pb-2 flex items-center justify-between">
               <p style={{ fontSize: 13, fontWeight: 700, color: '#1f2024' }}>Automated Checks</p>
+              {stats && (
+                <span style={{ fontSize: 10, color: '#8f9098' }}>
+                  {checks.filter((c) => c.pass).length}/{checks.length} passed
+                </span>
+              )}
             </div>
-            {checks.map((c, i) => (
-              <div
-                key={c.label}
-                className="flex items-center gap-3 px-4"
-                style={{ height: 60, borderTop: i === 0 ? 'none' : '1px solid #f0f0f5' }}
+
+            {measureError && (
+              <div className="px-4 pb-4">
+                <p style={{ fontSize: 11, color: '#991b1b' }}>Could not read the images: {measureError}</p>
+              </div>
+            )}
+
+            {!measuring && !measureError && !stats && (
+              <div className="px-4 pb-4 flex flex-col gap-3">
+                <p style={{ fontSize: 11, color: '#8f9098', lineHeight: '15px' }}>
+                  Nothing to check yet — all {CHANNELS.length} channel images have to be in before the
+                  gate can read them.
+                </p>
+                <button
+                  className="w-full flex items-center justify-center rounded-xl"
+                  style={{ height: 40, background: 'white', border: `1.5px solid ${PRIMARY}` }}
+                  onClick={() => setStep('upload')}
+                >
+                  <span style={{ fontSize: 12, fontWeight: 600, color: PRIMARY }}>Back to upload</span>
+                </button>
+              </div>
+            )}
+
+            {measuring && !measureError && (
+              <div className="px-4 pb-4 flex flex-col gap-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="rounded-lg" style={{ height: 40, background: '#f4f4f8' }} />
+                ))}
+              </div>
+            )}
+
+            {!measuring && checks.map((c, i) => (
+              <button
+                key={c.key}
+                className="flex items-center gap-3 px-4 w-full text-left"
+                style={{ height: 60, borderTop: i === 0 ? 'none' : '1px solid #f0f0f5', cursor: c.manual ? 'pointer' : 'default' }}
+                onClick={c.manual ? () => setCardConfirmed((v) => !v) : undefined}
+                disabled={!c.manual}
               >
                 <div
                   className="flex items-center justify-center rounded-full shrink-0"
-                  style={{ width: 32, height: 32, background: c.pass ? '#d1fae5' : '#fee2e2' }}
+                  style={{ width: 32, height: 32, background: c.pass ? '#d1fae5' : c.manual ? '#eef0ff' : '#fee2e2' }}
                 >
                   {c.pass ? (
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                       <path d="M3 8l3.5 3.5L13 5" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
+                  ) : c.manual ? (
+                    <div className="rounded-full" style={{ width: 14, height: 14, border: `2px solid ${PRIMARY}` }} />
                   ) : (
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
                       <path d="M4 4l8 8M12 4l-8 8" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" />
@@ -1073,10 +1273,10 @@ function ScanScreen({ nav, initialStep = 'prep' }: { nav: (s: Screen) => void; i
                 </div>
                 <div className="flex-1">
                   <p style={{ fontSize: 12, fontWeight: 600, color: '#1f2024' }}>{c.label}</p>
-                  <p style={{ fontSize: 10, color: '#8f9098', marginTop: 1 }}>{c.detail}</p>
+                  <p style={{ fontSize: 10, color: '#8f9098', marginTop: 1, lineHeight: '13px' }}>{c.detail}</p>
                 </div>
-                <QualityBadge pass={c.pass} />
-              </div>
+                <QualityBadge pass={c.pass} manual={c.manual} />
+              </button>
             ))}
           </div>
 
@@ -1088,13 +1288,33 @@ function ScanScreen({ nav, initialStep = 'prep' }: { nav: (s: Screen) => void; i
             </p>
           </div>
 
-          <button
-            className="w-full flex items-center justify-center rounded-xl"
-            style={{ height: 48, background: PRIMARY }}
-            onClick={startAnalysis}
-          >
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>Analyze Images</span>
-          </button>
+          <div className="flex flex-col gap-2">
+            <button
+              className="w-full flex items-center justify-center rounded-xl transition-opacity"
+              style={{ height: 48, background: canAnalyze ? PRIMARY : '#c5c6cc', opacity: canAnalyze ? 1 : 0.6 }}
+              disabled={!canAnalyze}
+              onClick={startAnalysis}
+            >
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'white' }}>
+                {measuring
+                  ? 'Checking images…'
+                  : !stats
+                    ? 'Waiting for all three channels'
+                    : canAnalyze
+                      ? 'Analyze Images'
+                      : `Resolve ${checks.filter((c) => !c.pass).length} issue${checks.filter((c) => !c.pass).length === 1 ? '' : 's'} to continue`}
+              </span>
+            </button>
+            {!measuring && !canAnalyze && checks.some((c) => !c.pass && !c.manual) && (
+              <button
+                className="w-full flex items-center justify-center rounded-xl"
+                style={{ height: 44, background: 'white', border: `1.5px solid ${PRIMARY}` }}
+                onClick={() => setStep('upload')}
+              >
+                <span style={{ fontSize: 12, fontWeight: 600, color: PRIMARY }}>Re-shoot the flagged channel</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     )
@@ -1187,20 +1407,51 @@ function ScanScreen({ nav, initialStep = 'prep' }: { nav: (s: Screen) => void; i
     )
   }
 
-  // ── Result ───────────────────────────────────────────────────────────────────
-  const metrics = [
-    { label: 'Redness Area', value: 18, unit: '% of ROI', color: '#ef4444', prev: 22, desc: 'Surface area showing elevated redness signal (cross-pol channel)' },
-    { label: 'Boundary Clarity', value: 74, unit: '/100', color: CHANNELS[1].color, prev: 68, desc: 'Sharpness of lesion boundaries detected in cross-polarized image' },
-    { label: 'Surface Shine Index', value: 61, unit: '/100', color: CHANNELS[2].color, prev: 65, desc: 'Specular reflectance from parallel-polarized image — higher = oilier' },
-    { label: 'Texture Roughness', value: 42, unit: '/100', color: '#f59e0b', prev: 47, desc: 'High-frequency surface variation from parallel-pol channel' },
-    { label: 'Repeatability Score', value: 88, unit: '/100', color: '#10b981', prev: 85, desc: 'Similarity of framing and exposure across sessions' },
-  ]
+  // The finished report is no longer a step of this wizard — it is a screen of
+  // its own (ReportScreen), reached both from here and from history.
+  return null
+}
+
+// ─── Report ───────────────────────────────────────────────────────────────────
+
+function EmptyReport({ nav }: { nav: (s: Screen) => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center size-full bg-[#f8f9fe] px-8 gap-4">
+      <p style={{ fontSize: 15, fontWeight: 700, color: '#1f2024' }}>No report yet</p>
+      <p style={{ fontSize: 12, color: '#71727a', textAlign: 'center', lineHeight: '17px' }}>
+        Run a scan and the optical feature report will appear here.
+      </p>
+      <button
+        className="flex items-center justify-center rounded-xl px-6"
+        style={{ height: 44, background: PRIMARY }}
+        onClick={() => nav('scan')}
+      >
+        <span style={{ fontSize: 12, fontWeight: 600, color: 'white' }}>Start a scan</span>
+      </button>
+    </div>
+  )
+}
+
+function ReportScreen({
+  scan,
+  scans,
+  onBack,
+  onNewScan,
+}: {
+  scan: Scan
+  scans: Scan[]
+  onBack: () => void
+  onNewScan: () => void
+}) {
+  const score = scoreFromMetrics(scan.metrics)
+  const delta = scoreDelta(scans, scan)
+  const prev = previousScan(scans, scan.id)
 
   return (
     <div className="flex flex-col size-full bg-[#f8f9fe]">
       <StatusBar />
       <div className="flex items-center px-5 pb-3 gap-3">
-        <button onClick={reset}>
+        <button onClick={onBack}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path d="M15 18l-6-6 6-6" stroke="#1f2024" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
@@ -1223,10 +1474,14 @@ function ScanScreen({ nav, initialStep = 'prep' }: { nav: (s: Screen) => void; i
           <div className="flex flex-col gap-1 flex-1">
             <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>Optical Scan Score</p>
             <div className="flex items-baseline gap-1.5">
-              <p style={{ fontSize: 52, fontWeight: 900, color: 'white', lineHeight: 1 }}>87</p>
+              <p style={{ fontSize: 52, fontWeight: 900, color: 'white', lineHeight: 1 }}>{score}</p>
               <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>/100</p>
             </div>
-            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>↑ +5 from last scan · Jul 20, 2026</p>
+            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>
+              {delta === null
+                ? `First scan · ${formatDate(scan.takenAt)}`
+                : `${delta >= 0 ? '↑ +' : '↓ '}${delta} from last scan · ${formatDate(scan.takenAt)}`}
+            </p>
           </div>
           <div className="flex flex-col gap-2">
             {CHANNELS.map((c) => (
@@ -1241,33 +1496,39 @@ function ScanScreen({ nav, initialStep = 'prep' }: { nav: (s: Screen) => void; i
         {/* Metrics */}
         <div className="bg-white rounded-2xl p-4 flex flex-col gap-3">
           <p style={{ fontSize: 13, fontWeight: 700, color: '#1f2024' }}>Optical Feature Metrics</p>
-          {metrics.map((m) => {
-            const delta = m.value - m.prev
+          {METRIC_DEFS.map((def) => {
+            const value = scan.metrics[def.key]
+            const before = prev ? prev.metrics[def.key] : null
+            const change = before === null ? null : value - before
+            const improved = change === null
+              ? null
+              : def.betterWhen === 'higher' ? change >= 0 : change <= 0
             return (
-              <div key={m.label} className="flex flex-col gap-1.5 p-3 rounded-xl" style={{ background: '#f8f9fe' }}>
+              <div key={def.key} className="flex flex-col gap-1.5 p-3 rounded-xl" style={{ background: '#f8f9fe' }}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p style={{ fontSize: 12, fontWeight: 600, color: '#1f2024' }}>{m.label}</p>
-                    <p style={{ fontSize: 10, color: '#8f9098', marginTop: 1, lineHeight: '13px' }}>{m.desc}</p>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: '#1f2024' }}>{def.label}</p>
+                    <p style={{ fontSize: 10, color: '#8f9098', marginTop: 1, lineHeight: '13px' }}>{def.desc}</p>
                   </div>
                   <div className="flex items-baseline gap-1 ml-3 shrink-0">
-                    <span style={{ fontSize: 20, fontWeight: 800, color: m.color }}>{m.value}</span>
-                    <span style={{ fontSize: 10, color: '#8f9098' }}>{m.unit}</span>
+                    <span style={{ fontSize: 20, fontWeight: 800, color: def.color }}>{value}</span>
+                    <span style={{ fontSize: 10, color: '#8f9098' }}>{def.unit}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex-1 rounded-full overflow-hidden" style={{ height: 5, background: '#e8e9f1' }}>
-                    <div className="h-full rounded-full" style={{ width: `${m.value}%`, background: m.color }} />
+                    <div className="h-full rounded-full" style={{ width: `${value}%`, background: def.color }} />
                   </div>
                   <span
                     style={{
-                      fontSize: 10, fontWeight: 600,
-                      color: delta < 0 && m.label !== 'Redness Area' ? '#ef4444'
-                        : delta > 0 && m.label === 'Redness Area' ? '#ef4444'
-                        : '#10b981',
+                      fontSize: 10,
+                      fontWeight: 600,
+                      minWidth: 26,
+                      textAlign: 'right',
+                      color: change === null ? '#8f9098' : improved ? '#10b981' : '#ef4444',
                     }}
                   >
-                    {delta > 0 ? '+' : ''}{delta}
+                    {change === null ? '—' : `${change > 0 ? '+' : ''}${change}`}
                   </span>
                 </div>
               </div>
@@ -1278,14 +1539,11 @@ function ScanScreen({ nav, initialStep = 'prep' }: { nav: (s: Screen) => void; i
         {/* Channel thumbnails */}
         <div className="bg-white rounded-2xl p-4 flex flex-col gap-3">
           <p style={{ fontSize: 13, fontWeight: 700, color: '#1f2024' }}>Captured Images</p>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {CHANNELS.map((c, i) => (
               <div key={c.id} className="flex flex-col gap-1">
-                <div
-                  className="rounded-xl overflow-hidden"
-                  style={{ height: 64, background: '#f0f0f8' }}
-                >
-                  {uploads[i] && <img src={uploads[i]!} alt="" className="size-full object-cover" />}
+                <div className="rounded-xl overflow-hidden" style={{ height: 64, background: '#f0f0f8' }}>
+                  {scan.thumbs[i] && <img src={scan.thumbs[i]} alt="" className="size-full object-cover" />}
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="rounded-full shrink-0" style={{ width: 5, height: 5, background: c.color }} />
@@ -1294,6 +1552,11 @@ function ScanScreen({ nav, initialStep = 'prep' }: { nav: (s: Screen) => void; i
               </div>
             ))}
           </div>
+          {!scan.thumbs.length && (
+            <p style={{ fontSize: 10, color: '#8f9098' }}>
+              Images from this session are no longer stored on the device.
+            </p>
+          )}
         </div>
 
         {/* Disclaimer */}
@@ -1304,111 +1567,197 @@ function ScanScreen({ nav, initialStep = 'prep' }: { nav: (s: Screen) => void; i
           </p>
         </div>
 
-        <div className="flex gap-3">
-          <button
-            className="flex-1 flex items-center justify-center rounded-xl"
-            style={{ height: 48, background: 'white', border: `1.5px solid ${PRIMARY}` }}
-            onClick={reset}
-          >
-            <span style={{ fontSize: 12, fontWeight: 600, color: PRIMARY }}>New Scan</span>
-          </button>
-          <button
-            className="flex-1 flex items-center justify-center rounded-xl"
-            style={{ height: 48, background: PRIMARY }}
-            onClick={() => { reset(); nav('home') }}
-          >
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'white' }}>Save & Home</span>
-          </button>
-        </div>
+        <button
+          className="w-full flex items-center justify-center rounded-xl"
+          style={{ height: 48, background: 'white', border: `1.5px solid ${PRIMARY}` }}
+          onClick={onNewScan}
+        >
+          <span style={{ fontSize: 12, fontWeight: 600, color: PRIMARY }}>Run another scan</span>
+        </button>
       </div>
     </div>
   )
 }
 
 // ─── History ──────────────────────────────────────────────────────────────────
-const historyData = [
-  { date: 'Jul 20, 2026', score: 87, delta: +5, time: '10:30 AM' },
-  { date: 'Jul 13, 2026', score: 82, delta: +3, time: '9:15 AM' },
-  { date: 'Jul 6, 2026', score: 79, delta: -2, time: '11:00 AM' },
-  { date: 'Jun 29, 2026', score: 81, delta: +4, time: '8:45 AM' },
-  { date: 'Jun 22, 2026', score: 77, delta: +1, time: '10:00 AM' },
-  { date: 'Jun 15, 2026', score: 76, delta: -1, time: '9:30 AM' },
-]
 
-function HistoryScreen({ nav }: { nav: (s: Screen) => void }) {
-  const [tab, setTab] = useState<'list' | 'chart'>('list')
+/**
+ * One screen, three views of the same list. "Face Visited" used to be a separate
+ * destination showing a third set of totals that disagreed with both this screen
+ * and Profile; it is now the Grid tab, reading the same scans as everything else.
+ */
+function HistoryScreen({
+  scans,
+  nav,
+  onOpenReport,
+}: {
+  scans: Scan[]
+  nav: (s: Screen) => void
+  onOpenReport: (id: string) => void
+}) {
+  const [tab, setTab] = useState<'list' | 'chart' | 'grid'>('list')
+  const ordered = useMemo(() => byNewest(scans), [scans])
+  const avg = averageScore(scans)
+
+  if (!scans.length) {
+    return (
+      <div className="flex flex-col size-full bg-[#f8f9fe]">
+        <StatusBar />
+        <div className="px-5 pb-4">
+          <p style={{ fontSize: 18, fontWeight: 700, color: '#1f2024' }}>History</p>
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center px-8 gap-3">
+          <div className="flex items-center justify-center rounded-full" style={{ width: 64, height: 64, background: '#e8e9f1' }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="#8f9098" strokeWidth="2" />
+              <polyline points="12,6 12,12 16,14" stroke="#8f9098" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <p style={{ fontSize: 14, fontWeight: 700, color: '#1f2024' }}>No scans yet</p>
+          <p style={{ fontSize: 12, color: '#71727a', textAlign: 'center', lineHeight: '17px' }}>
+            Your first scan sets the baseline. Everything after it is measured against that.
+          </p>
+          <button
+            className="flex items-center justify-center rounded-xl px-6 mt-2"
+            style={{ height: 44, background: PRIMARY }}
+            onClick={() => nav('scan')}
+          >
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'white' }}>Run first scan</span>
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col size-full bg-[#f8f9fe]">
       <StatusBar />
       <div className="flex items-center justify-between px-5 pb-4">
         <p style={{ fontSize: 18, fontWeight: 700, color: '#1f2024' }}>History</p>
-        <button onClick={() => nav('face-visited')}>
-          <span style={{ fontSize: 12, color: PRIMARY, fontWeight: 600 }}>Face Visited</span>
-        </button>
+        <div className="flex items-center justify-center rounded-xl px-3" style={{ height: 30, background: '#e8e9f1' }}>
+          <span style={{ fontSize: 11, color: '#1f2024' }}>{scans.length} scans · avg {avg}</span>
+        </div>
       </div>
 
       {/* Tabs */}
       <div className="flex mx-5 mb-4 p-1 rounded-xl gap-1" style={{ background: '#e8e9f1' }}>
-        {(['list', 'chart'] as const).map((t) => (
+        {([['list', 'List'], ['chart', 'Trend'], ['grid', 'Grid']] as const).map(([t, label]) => (
           <button
             key={t}
             className="flex-1 flex items-center justify-center rounded-lg"
             style={{ height: 32, background: tab === t ? 'white' : 'transparent' }}
             onClick={() => setTab(t)}
           >
-            <span style={{ fontSize: 12, fontWeight: 600, color: tab === t ? '#1f2024' : '#8f9098' }}>
-              {t === 'list' ? 'List View' : 'Chart View'}
-            </span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: tab === t ? '#1f2024' : '#8f9098' }}>{label}</span>
           </button>
         ))}
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 pb-6 flex flex-col gap-3">
-        {tab === 'list' ? (
-          historyData.map((item, i) => (
-            <div key={i} className="bg-white rounded-2xl p-4 flex items-center gap-4">
+        {tab === 'list' && ordered.map((scan) => {
+          const score = scoreFromMetrics(scan.metrics)
+          const delta = scoreDelta(scans, scan)
+          return (
+            <button
+              key={scan.id}
+              className="bg-white rounded-2xl p-4 flex items-center gap-4 w-full text-left"
+              onClick={() => onOpenReport(scan.id)}
+            >
               <div
-                className="flex items-center justify-center rounded-xl shrink-0"
+                className="flex items-center justify-center rounded-xl shrink-0 overflow-hidden"
                 style={{ width: 52, height: 52, background: '#f0f0f8' }}
               >
-                <p style={{ fontSize: 22, fontWeight: 900, color: PRIMARY }}>{item.score}</p>
+                {scan.thumbs[0]
+                  ? <img src={scan.thumbs[0]} alt="" className="size-full object-cover" />
+                  : <p style={{ fontSize: 22, fontWeight: 900, color: PRIMARY }}>{score}</p>}
               </div>
               <div className="flex-1">
-                <p style={{ fontSize: 13, fontWeight: 600, color: '#1f2024' }}>{item.date}</p>
-                <p style={{ fontSize: 11, color: '#8f9098', marginTop: 2 }}>{item.time}</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#1f2024' }}>{formatDate(scan.takenAt)}</p>
+                <p style={{ fontSize: 11, color: '#8f9098', marginTop: 2 }}>
+                  {formatTime(scan.takenAt)} · score {score}
+                </p>
               </div>
-              <div className="flex flex-col items-end gap-1">
+              {delta !== null && (
                 <span
                   style={{
-                    fontSize: 11, fontWeight: 600, paddingInline: 6, paddingBlock: 2,
-                    borderRadius: 8,
-                    color: item.delta > 0 ? '#16a34a' : '#dc2626',
-                    background: item.delta > 0 ? '#dcfce7' : '#fee2e2',
+                    fontSize: 11, fontWeight: 600, paddingInline: 6, paddingBlock: 2, borderRadius: 8,
+                    color: delta >= 0 ? '#16a34a' : '#dc2626',
+                    background: delta >= 0 ? '#dcfce7' : '#fee2e2',
                   }}
                 >
-                  {item.delta > 0 ? '+' : ''}{item.delta}
+                  {delta > 0 ? '+' : ''}{delta}
                 </span>
+              )}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0">
+                <path d="M9 6l6 6-6 6" stroke="#c5c6cc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          )
+        })}
+
+        {tab === 'chart' && (() => {
+          const series = [...ordered].reverse()
+          const scores = series.map((s) => scoreFromMetrics(s.metrics))
+          // Scale to the data with a little headroom, instead of the fixed
+          // 70-90 window the mock assumed — that clipped any real score.
+          const lo = Math.max(0, Math.min(...scores) - 6)
+          const hi = Math.min(100, Math.max(...scores) + 6)
+          const span = Math.max(1, hi - lo)
+          return (
+            <div className="bg-white rounded-2xl p-4 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#1f2024' }}>Score Trend</p>
+                <span style={{ fontSize: 10, color: '#8f9098' }}>{lo}–{hi}</span>
               </div>
-            </div>
-          ))
-        ) : (
-          <div className="bg-white rounded-2xl p-4 flex flex-col gap-4">
-            <p style={{ fontSize: 13, fontWeight: 600, color: '#1f2024' }}>Score Trend</p>
-            <div className="flex items-end gap-2" style={{ height: 140 }}>
-              {historyData.slice().reverse().map((item, i) => {
-                const h = ((item.score - 70) / 20) * 100
-                return (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+              <div className="flex items-end gap-2" style={{ height: 140 }}>
+                {series.map((scan, i) => (
+                  <button
+                    key={scan.id}
+                    className="flex-1 flex flex-col items-center gap-1 h-full justify-end"
+                    onClick={() => onOpenReport(scan.id)}
+                  >
+                    <span style={{ fontSize: 9, fontWeight: 700, color: '#1f2024' }}>{scores[i]}</span>
                     <div
                       className="rounded-t-lg w-full transition-all"
-                      style={{ height: `${h}%`, background: `linear-gradient(to top, ${PRIMARY}, #6b8ff8)` }}
+                      style={{
+                        height: `${Math.max(4, ((scores[i] - lo) / span) * 100)}%`,
+                        background: `linear-gradient(to top, ${PRIMARY}, #6b8ff8)`,
+                      }}
                     />
-                    <span style={{ fontSize: 9, color: '#8f9098' }}>{item.date.slice(4, 10)}</span>
-                  </div>
-                )
-              })}
+                    <span style={{ fontSize: 9, color: '#8f9098' }}>{formatShortDate(scan.takenAt)}</span>
+                  </button>
+                ))}
+              </div>
             </div>
+          )
+        })()}
+
+        {tab === 'grid' && (
+          <div className="grid grid-cols-3 gap-3">
+            {ordered.map((scan) => (
+              <button
+                key={scan.id}
+                className="flex flex-col items-center gap-2 p-3 rounded-2xl"
+                style={{ background: 'white' }}
+                onClick={() => onOpenReport(scan.id)}
+              >
+                <div
+                  className="flex items-center justify-center rounded-full overflow-hidden"
+                  style={{ width: 60, height: 60, background: '#f0f0f8' }}
+                >
+                  {scan.thumbs[0] ? (
+                    <img src={scan.thumbs[0]} alt="" className="size-full object-cover" />
+                  ) : (
+                    <svg width="28" height="36" viewBox="0 0 40 50" fill="none">
+                      <ellipse cx="20" cy="20" rx="14" ry="16" fill="#d4d6e0" />
+                      <ellipse cx="20" cy="45" rx="18" ry="10" fill="#d4d6e0" />
+                    </svg>
+                  )}
+                </div>
+                <p style={{ fontSize: 16, fontWeight: 800, color: PRIMARY }}>{scoreFromMetrics(scan.metrics)}</p>
+                <p style={{ fontSize: 9, color: '#8f9098', textAlign: 'center' }}>{formatShortDate(scan.takenAt)}</p>
+              </button>
+            ))}
           </div>
         )}
       </div>
@@ -1416,62 +1765,12 @@ function HistoryScreen({ nav }: { nav: (s: Screen) => void }) {
   )
 }
 
-// ─── Face Visited ─────────────────────────────────────────────────────────────
-function FaceVisitedScreen({ nav }: { nav: (s: Screen) => void }) {
-  const visits = Array.from({ length: 12 }, (_, i) => ({
-    date: `Jul ${20 - i * 3}, 2026`,
-    score: 87 - i * 1.5,
-  }))
-
-  return (
-    <div className="flex flex-col size-full bg-[#f8f9fe]">
-      <StatusBar />
-      <div className="flex items-center px-5 pb-4 gap-3">
-        <button onClick={() => nav('history')}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M15 18l-6-6 6-6" stroke="#1f2024" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-        <p style={{ fontSize: 16, fontWeight: 700, color: '#1f2024' }}>Face Visited</p>
-      </div>
-      <div className="flex items-center justify-between px-5 mb-4">
-        <p style={{ fontSize: 13, color: '#8f9098' }}>Total scans: <strong style={{ color: '#1f2024' }}>12</strong></p>
-        <div
-          className="flex items-center justify-center rounded-xl px-3"
-          style={{ height: 32, background: '#e8e9f1' }}
-        >
-          <span style={{ fontSize: 11, color: '#1f2024' }}>Avg: 82.4</span>
-        </div>
-      </div>
-      <div className="flex-1 overflow-y-auto px-5 pb-6">
-        <div className="grid grid-cols-3 gap-3">
-          {visits.map((v, i) => (
-            <div
-              key={i}
-              className="flex flex-col items-center gap-2 p-3 rounded-2xl"
-              style={{ background: 'white' }}
-            >
-              <div
-                className="flex items-center justify-center rounded-full"
-                style={{ width: 60, height: 60, background: '#f0f0f8' }}
-              >
-                <svg width="28" height="36" viewBox="0 0 40 50" fill="none">
-                  <ellipse cx="20" cy="20" rx="14" ry="16" fill="#d4d6e0" />
-                  <ellipse cx="20" cy="45" rx="18" ry="10" fill="#d4d6e0" />
-                </svg>
-              </div>
-              <p style={{ fontSize: 16, fontWeight: 800, color: PRIMARY }}>{Math.round(v.score)}</p>
-              <p style={{ fontSize: 9, color: '#8f9098', textAlign: 'center' }}>{v.date}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ─── Profile ──────────────────────────────────────────────────────────────────
-function ProfileScreen({ nav }: { nav: (s: Screen) => void }) {
+function ProfileScreen({ nav, scans }: { nav: (s: Screen) => void; scans: Scan[] }) {
+  // Every figure here used to be a literal, and disagreed with History.
+  const avg = averageScore(scans)
+  const best = bestScore(scans)
+  const recent = byNewest(scans).slice(0, 3)
   return (
     <div className="flex flex-col size-full bg-[#f8f9fe]">
       <StatusBar />
@@ -1506,9 +1805,9 @@ function ProfileScreen({ nav }: { nav: (s: Screen) => void }) {
           </div>
           <div className="flex gap-6 mt-1">
             {[
-              { label: 'Scans', value: '12' },
-              { label: 'Avg Score', value: '82' },
-              { label: 'Best', value: '87' },
+              { label: 'Scans', value: String(scans.length) },
+              { label: 'Avg Score', value: avg === null ? '—' : String(avg) },
+              { label: 'Best', value: best === null ? '—' : String(best) },
             ].map((s) => (
               <div key={s.label} className="flex flex-col items-center gap-1">
                 <p style={{ fontSize: 20, fontWeight: 800, color: PRIMARY }}>{s.value}</p>
@@ -1539,20 +1838,30 @@ function ProfileScreen({ nav }: { nav: (s: Screen) => void }) {
         {/* Recent activity */}
         <div className="bg-white rounded-2xl p-4 flex flex-col gap-3">
           <p style={{ fontSize: 14, fontWeight: 700, color: '#1f2024' }}>Recent Activity</p>
-          {historyData.slice(0, 3).map((item, i) => (
-            <div key={i} className="flex items-center gap-3">
-              <div className="size-8 rounded-full flex items-center justify-center shrink-0" style={{ background: '#f0f0f8' }}>
-                <span style={{ fontSize: 14 }}>🧴</span>
+          {recent.length === 0 && (
+            <p style={{ fontSize: 11, color: '#8f9098' }}>Nothing yet — your scans will show up here.</p>
+          )}
+          {recent.map((scan) => {
+            const delta = scoreDelta(scans, scan)
+            return (
+              <div key={scan.id} className="flex items-center gap-3">
+                <div className="size-8 rounded-full flex items-center justify-center shrink-0" style={{ background: '#f0f0f8' }}>
+                  <span style={{ fontSize: 14 }}>🧴</span>
+                </div>
+                <div className="flex-1">
+                  <p style={{ fontSize: 12, fontWeight: 600, color: '#1f2024' }}>Skin Scan Completed</p>
+                  <p style={{ fontSize: 10, color: '#8f9098' }}>
+                    {formatDate(scan.takenAt)} · Score: {scoreFromMetrics(scan.metrics)}
+                  </p>
+                </div>
+                {delta !== null && (
+                  <span style={{ fontSize: 11, fontWeight: 600, color: delta >= 0 ? '#16a34a' : '#dc2626' }}>
+                    {delta > 0 ? '+' : ''}{delta}
+                  </span>
+                )}
               </div>
-              <div className="flex-1">
-                <p style={{ fontSize: 12, fontWeight: 600, color: '#1f2024' }}>Skin Scan Completed</p>
-                <p style={{ fontSize: 10, color: '#8f9098' }}>{item.date} · Score: {item.score}</p>
-              </div>
-              <span style={{ fontSize: 11, fontWeight: 600, color: item.delta > 0 ? '#16a34a' : '#dc2626' }}>
-                {item.delta > 0 ? '+' : ''}{item.delta}
-              </span>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </div>
@@ -1560,9 +1869,16 @@ function ProfileScreen({ nav }: { nav: (s: Screen) => void }) {
 }
 
 // ─── Settings ─────────────────────────────────────────────────────────────────
-function SettingsScreen({ nav, navToLocation }: { nav: (s: Screen) => void; navToLocation: () => void }) {
+function SettingsScreen({
+  nav,
+  navToLocation,
+  onSignOut,
+}: {
+  nav: (s: Screen) => void
+  navToLocation: () => void
+  onSignOut: () => void
+}) {
   const [notifs, setNotifs] = useState(true)
-  const [darkMode, setDarkMode] = useState(false)
   const [autoScan, setAutoScan] = useState(false)
   const [editName, setEditName] = useState('Ava Johnson')
   const [editEmail, setEditEmail] = useState('ava.johnson@email.com')
@@ -1637,7 +1953,6 @@ function SettingsScreen({ nav, navToLocation }: { nav: (s: Screen) => void; navT
           </div>
           {[
             { label: 'Notifications', toggle: notifs, onToggle: () => setNotifs(!notifs) },
-            { label: 'Dark Mode', toggle: darkMode, onToggle: () => setDarkMode(!darkMode) },
             { label: 'Auto Scan Reminder', toggle: autoScan, onToggle: () => setAutoScan(!autoScan) },
           ].map((item, i, arr) => (
             <div
@@ -1695,7 +2010,7 @@ function SettingsScreen({ nav, navToLocation }: { nav: (s: Screen) => void; navT
         <button
           className="w-full flex items-center justify-center rounded-2xl"
           style={{ height: 52, background: 'white', border: '1px solid #fee2e2' }}
-          onClick={() => nav('login')}
+          onClick={onSignOut}
         >
           <span style={{ fontSize: 13, fontWeight: 600, color: '#ef4444' }}>Log Out</span>
         </button>
@@ -1783,16 +2098,64 @@ function LocationScreen({ nav, from = 'home' }: { nav: (s: Screen) => void; from
 }
 
 // ─── App Shell ────────────────────────────────────────────────────────────────
-const MAIN_SCREENS: Screen[] = ['home', 'scan', 'history', 'face-visited', 'profile', 'settings', 'location']
 
 export default function App({ initialScreen }: { initialScreen?: Screen } = {}) {
   const [screen, setScreen] = useState<Screen>(initialScreen ?? 'splash')
   const [locationFrom, setLocationFrom] = useState<Screen>('home')
 
+  // Scan history lives here so every screen reads the same list. A deep link
+  // (?screen=home) skips sign-in, so it gets the sample account.
+  const [scans, setScans] = useState<Scan[]>(initialScreen ? SEED_SCANS : [])
+  const [scanStep, setScanStep] = useState<ScanStep>('prep')
+  const [openScanId, setOpenScanId] = useState<string | null>(null)
+  const [reportFrom, setReportFrom] = useState<Screen>('home')
+
   const nav = (s: Screen) => setScreen(s)
   const navToLocation = (from: Screen) => { setLocationFrom(from); setScreen('location') }
 
-  const showNav = MAIN_SCREENS.includes(screen) && screen !== 'face-visited' && screen !== 'settings' && screen !== 'location' && !screen.startsWith('scan')
+  const openReport = (id: string, from: Screen) => {
+    setOpenScanId(id)
+    setReportFrom(from)
+    setScreen('report')
+  }
+
+  /** Signing in to the sample account loads demo history; a new account starts empty. */
+  const signIn = (withHistory: boolean) => {
+    setScans(withHistory ? SEED_SCANS : [])
+    setScreen('home')
+  }
+
+  const signOut = () => {
+    setScans([])
+    setOpenScanId(null)
+    setScreen('login')
+  }
+
+  const completeScan = (scan: Scan) => {
+    setScans((prev) => [...prev, scan])
+    setOpenScanId(scan.id)
+    setReportFrom('home')
+    setScreen('report')
+  }
+
+  // The tab bar stays up on browsing destinations and on the first step of the
+  // scan wizard, where there is nothing to lose yet. It hides once images are in
+  // flight so a stray tab tap cannot discard an upload mid-flow.
+  const showNav =
+    screen === 'home' ||
+    screen === 'history' ||
+    screen === 'profile' ||
+    screen === 'settings' ||
+    screen === 'report' ||
+    ((screen === 'scan' || screen === 'scan-prep') && scanStep === 'prep')
+
+  const activeTab: Screen = screen === 'settings'
+    ? 'profile'
+    : screen === 'report'
+      ? (reportFrom === 'history' ? 'history' : 'home')
+      : screen.startsWith('scan')
+        ? 'scan'
+        : screen
 
   const renderScreen = () => {
     if (screen === 'splash') return <SplashScreen onDone={() => setScreen('onboard1')} />
@@ -1809,18 +2172,58 @@ export default function App({ initialScreen }: { initialScreen?: Screen } = {}) 
         />
       )
     }
-    if (screen === 'login') return <LoginScreen nav={nav} />
-    if (screen === 'signup') return <SignUpScreen nav={nav} />
-    if (screen === 'home') return <HomeScreen nav={nav} navToLocation={() => navToLocation('home')} />
-    if (screen === 'scan' || screen === 'scan-prep') return <ScanScreen nav={nav} initialStep="prep" />
-    if (screen === 'scan-upload') return <ScanScreen nav={nav} initialStep="upload" />
-    if (screen === 'scan-quality') return <ScanScreen nav={nav} initialStep="quality" />
-    if (screen === 'scan-analyzing') return <ScanScreen nav={nav} initialStep="analyzing" />
-    if (screen === 'scan-result') return <ScanScreen nav={nav} initialStep="result" />
-    if (screen === 'history') return <HistoryScreen nav={nav} />
-    if (screen === 'face-visited') return <FaceVisitedScreen nav={nav} />
-    if (screen === 'profile') return <ProfileScreen nav={nav} />
-    if (screen === 'settings') return <SettingsScreen nav={nav} navToLocation={() => navToLocation('settings')} />
+    if (screen === 'login') return <LoginScreen nav={nav} onSignIn={() => signIn(true)} />
+    if (screen === 'signup') return <SignUpScreen nav={nav} onSignUp={() => signIn(false)} />
+    if (screen === 'home') {
+      return (
+        <HomeScreen
+          nav={nav}
+          navToLocation={() => navToLocation('home')}
+          scans={scans}
+          onOpenReport={(id) => openReport(id, 'home')}
+        />
+      )
+    }
+    if (screen === 'scan' || screen.startsWith('scan-')) {
+      const step: ScanStep =
+        screen === 'scan-upload' ? 'upload'
+          : screen === 'scan-quality' ? 'quality'
+            : screen === 'scan-analyzing' ? 'analyzing'
+              : 'prep'
+      return (
+        <ScanScreen
+          nav={nav}
+          initialStep={step}
+          onStepChange={setScanStep}
+          onComplete={completeScan}
+        />
+      )
+    }
+    if (screen === 'report') {
+      const scan = scans.find((s) => s.id === openScanId) ?? latestScan(scans)
+      if (!scan) return <EmptyReport nav={nav} />
+      return (
+        <ReportScreen
+          scan={scan}
+          scans={scans}
+          onBack={() => nav(reportFrom)}
+          onNewScan={() => nav('scan')}
+        />
+      )
+    }
+    if (screen === 'history') {
+      return <HistoryScreen scans={scans} nav={nav} onOpenReport={(id) => openReport(id, 'history')} />
+    }
+    if (screen === 'profile') return <ProfileScreen nav={nav} scans={scans} />
+    if (screen === 'settings') {
+      return (
+        <SettingsScreen
+          nav={nav}
+          navToLocation={() => navToLocation('settings')}
+          onSignOut={signOut}
+        />
+      )
+    }
     if (screen === 'location') return <LocationScreen nav={nav} from={locationFrom} />
     return null
   }
@@ -1849,12 +2252,7 @@ export default function App({ initialScreen }: { initialScreen?: Screen } = {}) 
           <div className="flex flex-col flex-1 overflow-hidden relative">
             {renderScreen()}
           </div>
-          {showNav && (
-            <BottomNav
-              active={screen}
-              nav={nav}
-            />
-          )}
+          {showNav && <BottomNav active={activeTab} nav={nav} />}
         </div>
 
         {/* Home indicator */}

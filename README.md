@@ -50,6 +50,30 @@ CLI alternative: `npx vercel --prod` from this folder.
 - **`src/FlowMap.tsx`** renders every screen on one board. Nothing imports it; wire
   it to a `?flow` query param if you want an all-screens overview page.
 
+## How the prototype behaves
+
+`src/scans.ts` is the single store for scan history; `src/analysis.ts` reads the
+uploaded pixels. Everything a screen shows is derived from those two.
+
+- **Sign in** loads six seeded scans (the demo account). **Sign up** starts with
+  an empty account, so the first-run state is reachable rather than theoretical.
+- **The quality gate measures.** Sharpness comes from mean gradient magnitude,
+  exposure from mean luminance, consistency from luminance spread across the
+  three channels. Any of them can fail and block the flow. The colour-card check
+  is a manual confirmation, because no pixel test can verify it.
+- **The report metrics are computed** from the three images: redness from the
+  share of pixels running above the frame's own redness median, boundary clarity
+  from edge energy in the cross-polarized channel, shine from how far the bright
+  tail runs above the median, roughness from high-frequency energy, repeatability
+  from how closely the three exposures track each other.
+- **The composite score is one formula** (`scoreFromMetrics`) applied everywhere,
+  so the home tile, the history chart, the grid and the report cannot disagree.
+- **A finished scan is appended to the store**, so history grows, the home score
+  moves and deltas are real.
+
+None of this is a clinical measurement, and the UI says so in three places. It is
+enough that the flow responds to what the user actually put into it.
+
 ## PWA
 
 `public/manifest.webmanifest` + `public/sw.js`, registered from `src/main.tsx`.

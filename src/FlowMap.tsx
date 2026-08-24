@@ -11,8 +11,8 @@ const GAP = 32
 type Screen =
   | "splash" | "onboard1" | "onboard2" | "onboard3"
   | "login" | "signup"
-  | "home" | "scan" | "scan-prep" | "scan-upload" | "scan-quality" | "scan-analyzing" | "scan-result"
-  | "history" | "face-visited"
+  | "home" | "scan" | "scan-prep" | "scan-upload" | "scan-quality" | "scan-analyzing" | "report"
+  | "history"
   | "profile" | "settings" | "location"
 
 interface Node {
@@ -35,7 +35,6 @@ const NODES: Node[] = [
   // row 1 — main (same row, different group)
   { id: "home",       label: "Home",         col: 3, row: 1, group: "main" },
   { id: "history",    label: "History",      col: 4, row: 1, group: "main" },
-  { id: "face-visited", label: "Face Visited", col: 5, row: 1, group: "main" },
   { id: "profile",    label: "Profile",      col: 6, row: 1, group: "main" },
   { id: "settings",   label: "Settings",     col: 7, row: 1, group: "main" },
   { id: "location",   label: "Location",     col: 8, row: 1, group: "main" },
@@ -44,7 +43,7 @@ const NODES: Node[] = [
   { id: "scan-upload",    label: "2 · Upload",        col: 1, row: 2, group: "scan" },
   { id: "scan-quality",   label: "3 · Quality Check", col: 2, row: 2, group: "scan" },
   { id: "scan-analyzing", label: "4 · Analyzing",     col: 3, row: 2, group: "scan" },
-  { id: "scan-result",    label: "5 · Result",        col: 4, row: 2, group: "scan" },
+  { id: "report",         label: "5 · Report",        col: 4, row: 2, group: "scan" },
 ]
 
 // navigation edges [from, to, label, dashed?]
@@ -60,7 +59,7 @@ const EDGES: [Screen, Screen, string, boolean?][] = [
   ["home",        "history",     "History nav"],
   ["home",        "profile",     "Profile nav", true],
   ["home",        "location",    "Location icon", true],
-  ["history",     "face-visited","Tap scan"],
+  ["history",     "report",      "Tap a scan"],
   ["profile",     "settings",    "Settings"],
   ["settings",    "location",    "Manage"],
   ["settings",    "login",       "Log Out", true],
@@ -69,8 +68,8 @@ const EDGES: [Screen, Screen, string, boolean?][] = [
   ["scan-prep",      "scan-upload",    "Checklist ✓"],
   ["scan-upload",    "scan-quality",   "3 uploaded"],
   ["scan-quality",   "scan-analyzing", "Analyze"],
-  ["scan-analyzing", "scan-result",    "Complete"],
-  ["scan-result",    "home",           "Save & Done"],
+  ["scan-analyzing", "report",         "Complete"],
+  ["report",         "home",           "Back"],
   ["scan-upload",    "scan-prep",      "Back", true],
   ["scan-quality",   "scan-upload",    "Back", true],
 ]
